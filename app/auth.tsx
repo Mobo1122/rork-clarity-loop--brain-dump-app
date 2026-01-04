@@ -106,8 +106,28 @@ export default function AuthScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.replace('/(tabs)');
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Something went wrong. Please try again.';
-      Alert.alert('Error', errorMessage);
+      let errorMessage = 'Something went wrong. Please try again.';
+      let errorTitle = 'Error';
+      
+      if (error instanceof Error) {
+        const message = error.message.toLowerCase();
+        
+        if (message.includes('only request this after') || message.includes('rate limit')) {
+          errorTitle = 'Too Many Attempts';
+          errorMessage = 'Please wait a moment before trying again. This helps keep your account secure.';
+        } else if (message.includes('invalid login credentials')) {
+          errorMessage = 'Invalid email or password. Please try again.';
+        } else if (message.includes('user already registered')) {
+          errorTitle = 'Account Exists';
+          errorMessage = 'An account with this email already exists. Try signing in instead.';
+        } else if (message.includes('email')) {
+          errorMessage = 'Please enter a valid email address.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      Alert.alert(errorTitle, errorMessage);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setIsLoading(false);
