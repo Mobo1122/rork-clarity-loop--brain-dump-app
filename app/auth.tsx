@@ -97,18 +97,17 @@ export default function AuthScreen() {
     setIsLoading(true);
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 800));
-
       if (mode === 'signup') {
-        signUp(email, fullName || undefined);
+        await signUp(email, password, fullName || undefined);
       } else {
-        signIn(email);
+        await signIn(email, password);
       }
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.replace('/(tabs)');
-    } catch {
-      Alert.alert('Error', 'Something went wrong. Please try again.');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Something went wrong. Please try again.';
+      Alert.alert('Error', errorMessage);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setIsLoading(false);

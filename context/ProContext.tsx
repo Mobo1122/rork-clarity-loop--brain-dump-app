@@ -2,11 +2,12 @@ import createContextHook from '@nkzw/create-context-hook';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { supabase } from '@/lib/supabase';
+import { Session, User } from '@supabase/supabase-js';
 
 const PRO_KEY = 'pro_status';
 const EXTRACTIONS_KEY = 'daily_extractions';
 const ONBOARDING_KEY = 'onboarding_completed';
-const AUTH_KEY = 'auth_user';
 
 export type PaywallTrigger = 'limit' | 'feature' | 'habit' | 'momentum';
 
@@ -29,6 +30,8 @@ export interface AuthUser {
   createdAt: string;
 }
 
+type SupabaseAuthUser = User | null;
+
 const defaultProStatus: ProStatus = {
   isPro: false,
   plan: 'free',
@@ -42,8 +45,11 @@ export const [ProProvider, usePro] = createContextHook(() => {
   const [dailyExtractions, setDailyExtractions] = useState<DailyExtractions>({ count: 0, date: '' });
   const [onboardingCompleted, setOnboardingCompleted] = useState<boolean | null>(null);
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+  const [, setSupabaseUser] = useState<SupabaseAuthUser>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [showPaywall, setShowPaywall] = useState(false);
   const [paywallTrigger, setPaywallTrigger] = useState<PaywallTrigger>('limit');
+  const [authLoading, setAuthLoading] = useState(true);
 
   const proQuery = useQuery({
     queryKey: ['pro_status'],
@@ -79,10 +85,55 @@ export const [ProProvider, usePro] = createContextHook(() => {
   const authQuery = useQuery({
     queryKey: ['auth_user'],
     queryFn: async () => {
-      const stored = await AsyncStorage.getItem(AUTH_KEY);
-      return stored ? JSON.parse(stored) as AuthUser : null;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const user: AuthUser = {
+          id: session.user.id,
+          email: session.user.email || '',
+          fullName: session.user.user_metadata?.full_name,
+          createdAt: session.user.created_at,
+        };
+        return user;
+      }
+      return null;
     },
   });
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setSupabaseUser(session?.user ?? null);
+      if (session?.user) {
+        setAuthUser({
+          id: session.user.id,
+          email: session.user.email || '',
+          fullName: session.user.user_metadata?.full_name,
+          createdAt: session.user.created_at,
+        });
+      }
+      setAuthLoading(false);
+      console.log('[ProContext] Initial session loaded:', !!session);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      console.log('[ProContext] Auth state changed:', _event);
+      setSession(session);
+      setSupabaseUser(session?.user ?? null);
+      if (session?.user) {
+        setAuthUser({
+          id: session.user.id,
+          email: session.user.email || '',
+          fullName: session.user.user_metadata?.full_name,
+          createdAt: session.user.created_at,
+        });
+      } else {
+        setAuthUser(null);
+      }
+      setAuthLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     if (proQuery.data) setProStatus(proQuery.data);
@@ -124,16 +175,7 @@ export const [ProProvider, usePro] = createContextHook(() => {
     },
   });
 
-  const { mutate: saveAuthUser } = useMutation({
-    mutationFn: async (user: AuthUser | null) => {
-      if (user) {
-        await AsyncStorage.setItem(AUTH_KEY, JSON.stringify(user));
-      } else {
-        await AsyncStorage.removeItem(AUTH_KEY);
-      }
-      return user;
-    },
-  });
+
 
   const canExtract = useMemo(() => {
     if (proStatus.isPro) return true;
@@ -189,38 +231,71 @@ export const [ProProvider, usePro] = createContextHook(() => {
     console.log('[ProContext] Onboarding completed');
   }, [saveOnboarding]);
 
-  const signUp = useCallback((email: string, fullName?: string) => {
-    const user: AuthUser = {
-      id: `user_${Date.now()}`,
+  const signUp = useCallback(async (email: string, password: string, fullName?: string) => {
+    console.log('[ProContext] Signing up:', email);
+    const { data, error } = await supabase.auth.signUp({
       email,
-      fullName,
-      createdAt: new Date().toISOString(),
-    };
-    setAuthUser(user);
-    saveAuthUser(user);
-    console.log('[ProContext] User signed up:', email);
-    return user;
-  }, [saveAuthUser]);
+      password,
+      options: {
+        data: { full_name: fullName },
+      },
+    });
+    if (error) {
+      console.error('[ProContext] Sign up error:', error.message);
+      throw error;
+    }
+    if (data.user) {
+      const user: AuthUser = {
+        id: data.user.id,
+        email: data.user.email || '',
+        fullName,
+        createdAt: data.user.created_at,
+      };
+      setAuthUser(user);
+      console.log('[ProContext] User signed up:', email);
+      return user;
+    }
+    return null;
+  }, []);
 
-  const signIn = useCallback((email: string) => {
-    const user: AuthUser = {
-      id: `user_${Date.now()}`,
+  const signIn = useCallback(async (email: string, password: string) => {
+    console.log('[ProContext] Signing in:', email);
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
-      createdAt: new Date().toISOString(),
-    };
-    setAuthUser(user);
-    saveAuthUser(user);
-    console.log('[ProContext] User signed in:', email);
-    return user;
-  }, [saveAuthUser]);
+      password,
+    });
+    if (error) {
+      console.error('[ProContext] Sign in error:', error.message);
+      throw error;
+    }
+    if (data.user) {
+      const user: AuthUser = {
+        id: data.user.id,
+        email: data.user.email || '',
+        fullName: data.user.user_metadata?.full_name,
+        createdAt: data.user.created_at,
+      };
+      setAuthUser(user);
+      console.log('[ProContext] User signed in:', email);
+      return user;
+    }
+    return null;
+  }, []);
 
-  const signOut = useCallback(() => {
+  const signOut = useCallback(async () => {
+    console.log('[ProContext] Signing out');
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error('[ProContext] Sign out error:', error.message);
+      throw error;
+    }
     setAuthUser(null);
-    saveAuthUser(null);
+    setSession(null);
+    setSupabaseUser(null);
     console.log('[ProContext] User signed out');
-  }, [saveAuthUser]);
+  }, []);
 
-  const isLoading = proQuery.isLoading || extractionsQuery.isLoading || onboardingQuery.isLoading || authQuery.isLoading;
+  const isLoading = proQuery.isLoading || extractionsQuery.isLoading || onboardingQuery.isLoading || authLoading;
 
   return {
     proStatus,
@@ -236,7 +311,8 @@ export const [ProProvider, usePro] = createContextHook(() => {
     onboardingCompleted,
     completeOnboarding,
     authUser,
-    isAuthenticated: !!authUser,
+    session,
+    isAuthenticated: !!session,
     signUp,
     signIn,
     signOut,

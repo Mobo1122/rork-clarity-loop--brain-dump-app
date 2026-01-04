@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Loop, Streak, BrainDump, UserPreferences } from '@/types';
 import { generateId, extractLoopsFromText } from '@/utils/helpers';
+import { supabase, SupabaseLoop, SupabaseLoopInsert } from '@/lib/supabase';
 
 const LOOPS_KEY = 'loops_data';
 const STREAK_KEY = 'streak_data';
@@ -24,6 +25,30 @@ const defaultPrefs: UserPreferences = {
   theme: 'system',
 };
 
+const mapSupabaseToLoop = (supabaseLoop: SupabaseLoop): Loop => ({
+  id: supabaseLoop.id,
+  title: supabaseLoop.title,
+  description: supabaseLoop.description || undefined,
+  difficulty: 'medium',
+  category: 'other',
+  loopType: 'general',
+  priority: 'medium',
+  isQuickWin: false,
+  status: (supabaseLoop.status as Loop['status']) || 'open',
+  tags: [],
+  isPinned: false,
+  createdAt: supabaseLoop.created_at,
+});
+
+const mapLoopToSupabase = (loop: Loop, userId: string): SupabaseLoopInsert => ({
+  id: loop.id,
+  user_id: userId,
+  title: loop.title,
+  status: loop.status,
+  energy_level: null,
+  description: loop.description || null,
+});
+
 export const [LoopsProvider, useLoops] = createContextHook(() => {
   const queryClient = useQueryClient();
   const [loops, setLoops] = useState<Loop[]>([]);
@@ -31,20 +56,55 @@ export const [LoopsProvider, useLoops] = createContextHook(() => {
   const [brainDumps, setBrainDumps] = useState<BrainDump[]>([]);
   const [preferences, setPreferences] = useState<UserPreferences>(defaultPrefs);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUserId(session?.user?.id ?? null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUserId(session?.user?.id ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const loopsQuery = useQuery({
-    queryKey: ['loops'],
+    queryKey: ['loops', userId],
     queryFn: async () => {
-      try {
+      if (!userId) {
+        console.log('[LoopsContext] No user, loading from AsyncStorage');
+        try {
+          const stored = await AsyncStorage.getItem(LOOPS_KEY);
+          if (!stored) return [];
+          return JSON.parse(stored) as Loop[];
+        } catch (error) {
+          console.error('[LoopsContext] Error parsing loops:', error);
+          return [];
+        }
+      }
+
+      console.log('[LoopsContext] Fetching loops from Supabase for user:', userId);
+      const { data, error } = await supabase
+        .from('loops')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('[LoopsContext] Supabase fetch error:', error.message);
         const stored = await AsyncStorage.getItem(LOOPS_KEY);
         if (!stored) return [];
         return JSON.parse(stored) as Loop[];
-      } catch (error) {
-        console.error('[LoopsContext] Error parsing loops:', error);
-        await AsyncStorage.removeItem(LOOPS_KEY);
-        return [];
       }
+
+      console.log('[LoopsContext] Fetched', data?.length || 0, 'loops from Supabase');
+      const mappedLoops = (data || []).map(mapSupabaseToLoop);
+      await AsyncStorage.setItem(LOOPS_KEY, JSON.stringify(mappedLoops));
+      return mappedLoops;
     },
+    enabled: true,
   });
 
   const streakQuery = useQuery({
@@ -120,7 +180,7 @@ export const [LoopsProvider, useLoops] = createContextHook(() => {
       return newLoops;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['loops'] });
+      queryClient.invalidateQueries({ queryKey: ['loops', userId] });
     },
   });
 
@@ -148,7 +208,7 @@ export const [LoopsProvider, useLoops] = createContextHook(() => {
     },
   });
 
-  const addLoop = useCallback((loopData: Partial<Loop>) => {
+  const addLoop = useCallback(async (loopData: Partial<Loop>) => {
     const newLoop: Loop = {
       id: generateId(),
       title: loopData.title || 'Untitled loop',
@@ -168,14 +228,25 @@ export const [LoopsProvider, useLoops] = createContextHook(() => {
       windowEndDate: loopData.windowEndDate,
       createdAt: new Date().toISOString(),
     };
+
+    if (userId) {
+      const supabaseLoop = mapLoopToSupabase(newLoop, userId);
+      const { error } = await supabase.from('loops').insert(supabaseLoop);
+      if (error) {
+        console.error('[LoopsContext] Supabase insert error:', error.message);
+      } else {
+        console.log('[LoopsContext] Loop saved to Supabase:', newLoop.title);
+      }
+    }
+
     const updated = [newLoop, ...loops];
     setLoops(updated);
     saveLoops(updated);
     console.log('[LoopsContext] Added loop:', newLoop.title);
     return newLoop;
-  }, [loops, saveLoops]);
+  }, [loops, saveLoops, userId]);
 
-  const completeLoop = useCallback((loopId: string, rating?: number) => {
+  const completeLoop = useCallback(async (loopId: string, rating?: number) => {
     const now = new Date();
     const updated = loops.map(l => 
       l.id === loopId 
@@ -184,6 +255,17 @@ export const [LoopsProvider, useLoops] = createContextHook(() => {
     );
     setLoops(updated);
     saveLoops(updated);
+
+    if (userId) {
+      const { error } = await supabase
+        .from('loops')
+        .update({ status: 'closed' })
+        .eq('id', loopId)
+        .eq('user_id', userId);
+      if (error) {
+        console.error('[LoopsContext] Supabase update error:', error.message);
+      }
+    }
 
     const today = now.toDateString();
     const lastClosed = streak.lastClosedAt ? new Date(streak.lastClosedAt).toDateString() : null;
@@ -211,14 +293,25 @@ export const [LoopsProvider, useLoops] = createContextHook(() => {
     setStreak(newStreak);
     saveStreak(newStreak);
     console.log('[LoopsContext] Completed loop, streak:', newStreak.currentCount);
-  }, [loops, streak, saveLoops, saveStreak]);
+  }, [loops, streak, saveLoops, saveStreak, userId]);
 
-  const deleteLoop = useCallback((loopId: string) => {
+  const deleteLoop = useCallback(async (loopId: string) => {
+    if (userId) {
+      const { error } = await supabase
+        .from('loops')
+        .delete()
+        .eq('id', loopId)
+        .eq('user_id', userId);
+      if (error) {
+        console.error('[LoopsContext] Supabase delete error:', error.message);
+      }
+    }
+
     const updated = loops.filter(l => l.id !== loopId);
     setLoops(updated);
     saveLoops(updated);
     console.log('[LoopsContext] Deleted loop:', loopId);
-  }, [loops, saveLoops]);
+  }, [loops, saveLoops, userId]);
 
   const processBrainDump = useCallback((rawContent: string) => {
     const extracted = extractLoopsFromText(rawContent);
@@ -265,42 +358,97 @@ export const [LoopsProvider, useLoops] = createContextHook(() => {
     savePrefs(updated);
   }, [preferences, savePrefs]);
 
-  const updateLoop = useCallback((loopId: string, updates: Partial<Loop>) => {
+  const updateLoop = useCallback(async (loopId: string, updates: Partial<Loop>) => {
     const updated = loops.map(l => 
       l.id === loopId ? { ...l, ...updates } : l
     );
     setLoops(updated);
     saveLoops(updated);
-    console.log('[LoopsContext] Updated loop:', loopId);
-  }, [loops, saveLoops]);
 
-  const archiveLoop = useCallback((loopId: string) => {
+    if (userId) {
+      const supabaseUpdates: Partial<SupabaseLoop> = {};
+      if (updates.title !== undefined) supabaseUpdates.title = updates.title;
+      if (updates.description !== undefined) supabaseUpdates.description = updates.description || null;
+      if (updates.status !== undefined) supabaseUpdates.status = updates.status;
+
+      if (Object.keys(supabaseUpdates).length > 0) {
+        const { error } = await supabase
+          .from('loops')
+          .update(supabaseUpdates)
+          .eq('id', loopId)
+          .eq('user_id', userId);
+        if (error) {
+          console.error('[LoopsContext] Supabase update error:', error.message);
+        }
+      }
+    }
+
+    console.log('[LoopsContext] Updated loop:', loopId);
+  }, [loops, saveLoops, userId]);
+
+  const archiveLoop = useCallback(async (loopId: string) => {
     const now = new Date().toISOString();
     const updated = loops.map(l => 
       l.id === loopId ? { ...l, status: 'archived' as const, archivedAt: now } : l
     );
     setLoops(updated);
     saveLoops(updated);
-    console.log('[LoopsContext] Archived loop:', loopId);
-  }, [loops, saveLoops]);
 
-  const snoozeLoop = useCallback((loopId: string, snoozedUntil: string) => {
+    if (userId) {
+      const { error } = await supabase
+        .from('loops')
+        .update({ status: 'archived' })
+        .eq('id', loopId)
+        .eq('user_id', userId);
+      if (error) {
+        console.error('[LoopsContext] Supabase archive error:', error.message);
+      }
+    }
+
+    console.log('[LoopsContext] Archived loop:', loopId);
+  }, [loops, saveLoops, userId]);
+
+  const snoozeLoop = useCallback(async (loopId: string, snoozedUntil: string) => {
     const updated = loops.map(l => 
       l.id === loopId ? { ...l, status: 'snoozed' as const, snoozedUntil } : l
     );
     setLoops(updated);
     saveLoops(updated);
-    console.log('[LoopsContext] Snoozed loop until:', snoozedUntil);
-  }, [loops, saveLoops]);
 
-  const reopenLoop = useCallback((loopId: string) => {
+    if (userId) {
+      const { error } = await supabase
+        .from('loops')
+        .update({ status: 'snoozed' })
+        .eq('id', loopId)
+        .eq('user_id', userId);
+      if (error) {
+        console.error('[LoopsContext] Supabase snooze error:', error.message);
+      }
+    }
+
+    console.log('[LoopsContext] Snoozed loop until:', snoozedUntil);
+  }, [loops, saveLoops, userId]);
+
+  const reopenLoop = useCallback(async (loopId: string) => {
     const updated = loops.map(l => 
       l.id === loopId ? { ...l, status: 'open' as const, snoozedUntil: undefined, archivedAt: undefined } : l
     );
     setLoops(updated);
     saveLoops(updated);
+
+    if (userId) {
+      const { error } = await supabase
+        .from('loops')
+        .update({ status: 'open' })
+        .eq('id', loopId)
+        .eq('user_id', userId);
+      if (error) {
+        console.error('[LoopsContext] Supabase reopen error:', error.message);
+      }
+    }
+
     console.log('[LoopsContext] Reopened loop:', loopId);
-  }, [loops, saveLoops]);
+  }, [loops, saveLoops, userId]);
 
   const togglePin = useCallback((loopId: string) => {
     const updated = loops.map(l => 
