@@ -94,23 +94,23 @@ export default function SettingsScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <Text style={styles.title}>Settings</Text>
-          <Text style={styles.subtitle}>Customize your experience</Text>
+          <Text style={[styles.title, { color: colors.text }]}>Settings</Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Customize your experience</Text>
         </View>
 
         {/* Subscription Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Subscription</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textTertiary }]}>Subscription</Text>
           
           {isPro ? (
-            <View style={styles.proCard}>
+            <View style={[styles.proCard, { backgroundColor: 'rgba(255, 215, 0, 0.08)', borderColor: 'rgba(255, 215, 0, 0.2)' }]}>
               <View style={styles.proHeader}>
                 <View style={styles.proIconContainer}>
                   <Crown size={24} color="#FFD700" />
                 </View>
                 <View style={styles.proInfo}>
-                  <Text style={styles.proTitle}>LOOPS Pro</Text>
-                  <Text style={styles.proPlan}>
+                  <Text style={[styles.proTitle, { color: colors.text }]}>LOOPS Pro</Text>
+                  <Text style={[styles.proPlan, { color: colors.textSecondary }]}>
                     {proStatus.plan === 'yearly' ? 'Yearly Plan' : 'Monthly Plan'}
                   </Text>
                 </View>
@@ -143,7 +143,7 @@ export default function SettingsScreen() {
             </View>
           ) : (
             <TouchableOpacity
-              style={styles.upgradeCard}
+              style={[styles.upgradeCard, { backgroundColor: colors.card }]}
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                 triggerPaywall('feature');
@@ -155,8 +155,8 @@ export default function SettingsScreen() {
                   <Crown size={28} color="#FFD700" />
                 </View>
                 <View style={styles.upgradeInfo}>
-                  <Text style={styles.upgradeTitle}>Upgrade to Pro</Text>
-                  <Text style={styles.upgradeSubtitle}>
+                  <Text style={[styles.upgradeTitle, { color: colors.text }]}>Upgrade to Pro</Text>
+                  <Text style={[styles.upgradeSubtitle, { color: colors.textSecondary }]}>
                     Unlock unlimited extractions, smart scheduling & more
                   </Text>
                 </View>
@@ -514,11 +514,9 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   proCard: {
-    backgroundColor: 'rgba(255, 215, 0, 0.08)',
     borderRadius: 16,
     padding: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255, 215, 0, 0.2)',
   },
   proHeader: {
     flexDirection: 'row',
@@ -540,11 +538,9 @@ const styles = StyleSheet.create({
   proTitle: {
     fontSize: 18,
     fontWeight: '700' as const,
-    color: '#FFFFFF',
   },
   proPlan: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.6)',
     marginTop: 2,
   },
   proBadge: {
@@ -581,7 +577,6 @@ const styles = StyleSheet.create({
     borderTopColor: 'rgba(255, 215, 0, 0.1)',
   },
   upgradeCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 16,
     padding: 20,
     borderWidth: 1,
@@ -607,11 +602,9 @@ const styles = StyleSheet.create({
   upgradeTitle: {
     fontSize: 18,
     fontWeight: '700' as const,
-    color: '#FFFFFF',
   },
   upgradeSubtitle: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.6)',
     marginTop: 4,
     lineHeight: 18,
   },
