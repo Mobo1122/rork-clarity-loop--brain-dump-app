@@ -1,8 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_KEY || '';
+
+if (!supabaseUrl || !supabaseKey) {
+  console.error('[Supabase] Missing URL or Key');
+}
 
 export const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {
@@ -10,6 +15,19 @@ export const supabase = createClient(supabaseUrl, supabaseKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
+    ...(Platform.OS !== 'web' && {
+      storageKey: 'loops-auth-token',
+    }),
+  },
+  global: {
+    headers: {
+      'X-Client-Info': `expo-${Platform.OS}`,
+    },
+  },
+  realtime: {
+    params: {
+      eventsPerSecond: 10,
+    },
   },
 });
 

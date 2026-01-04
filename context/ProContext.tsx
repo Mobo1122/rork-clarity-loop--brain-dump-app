@@ -85,18 +85,25 @@ export const [ProProvider, usePro] = createContextHook(() => {
   const authQuery = useQuery({
     queryKey: ['auth_user'],
     queryFn: async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        const user: AuthUser = {
-          id: session.user.id,
-          email: session.user.email || '',
-          fullName: session.user.user_metadata?.full_name,
-          createdAt: session.user.created_at,
-        };
-        return user;
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          const user: AuthUser = {
+            id: session.user.id,
+            email: session.user.email || '',
+            fullName: session.user.user_metadata?.full_name,
+            createdAt: session.user.created_at,
+          };
+          return user;
+        }
+        return null;
+      } catch (error) {
+        console.error('[ProContext] Error fetching auth session:', error);
+        return null;
       }
-      return null;
     },
+    retry: 2,
+    retryDelay: 1000,
   });
 
   useEffect(() => {
@@ -233,66 +240,100 @@ export const [ProProvider, usePro] = createContextHook(() => {
 
   const signUp = useCallback(async (email: string, password: string, fullName?: string) => {
     console.log('[ProContext] Signing up:', email);
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: fullName },
-      },
-    });
-    if (error) {
-      console.error('[ProContext] Sign up error:', error.message);
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { full_name: fullName },
+        },
+      });
+      if (error) {
+        console.error('[ProContext] Sign up error:', error.message);
+        throw error;
+      }
+      if (data.user) {
+        const user: AuthUser = {
+          id: data.user.id,
+          email: data.user.email || '',
+          fullName,
+          createdAt: data.user.created_at,
+        };
+        setAuthUser(user);
+        console.log('[ProContext] User signed up:', email);
+        return user;
+      }
+      return null;
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message.includes('fetch') || error.message.includes('network')) {
+          console.error('[ProContext] Network error during sign up');
+          throw new Error('Network error. Please check your internet connection and try again.');
+        }
+      }
       throw error;
     }
-    if (data.user) {
-      const user: AuthUser = {
-        id: data.user.id,
-        email: data.user.email || '',
-        fullName,
-        createdAt: data.user.created_at,
-      };
-      setAuthUser(user);
-      console.log('[ProContext] User signed up:', email);
-      return user;
-    }
-    return null;
   }, []);
 
   const signIn = useCallback(async (email: string, password: string) => {
     console.log('[ProContext] Signing in:', email);
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (error) {
-      console.error('[ProContext] Sign in error:', error.message);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) {
+        console.error('[ProContext] Sign in error:', error.message);
+        throw error;
+      }
+      if (data.user) {
+        const user: AuthUser = {
+          id: data.user.id,
+          email: data.user.email || '',
+          fullName: data.user.user_metadata?.full_name,
+          createdAt: data.user.created_at,
+        };
+        setAuthUser(user);
+        console.log('[ProContext] User signed in:', email);
+        return user;
+      }
+      return null;
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message.includes('fetch') || error.message.includes('network')) {
+          console.error('[ProContext] Network error during sign in');
+          throw new Error('Network error. Please check your internet connection and try again.');
+        }
+      }
       throw error;
     }
-    if (data.user) {
-      const user: AuthUser = {
-        id: data.user.id,
-        email: data.user.email || '',
-        fullName: data.user.user_metadata?.full_name,
-        createdAt: data.user.created_at,
-      };
-      setAuthUser(user);
-      console.log('[ProContext] User signed in:', email);
-      return user;
-    }
-    return null;
   }, []);
 
   const signOut = useCallback(async () => {
     console.log('[ProContext] Signing out');
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      console.error('[ProContext] Sign out error:', error.message);
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('[ProContext] Sign out error:', error.message);
+        throw error;
+      }
+      setAuthUser(null);
+      setSession(null);
+      setSupabaseUser(null);
+      console.log('[ProContext] User signed out');
+    } catch (error) {
+      console.error('[ProContext] Sign out failed, clearing local state anyway');
+      setAuthUser(null);
+      setSession(null);
+      setSupabaseUser(null);
+      if (error instanceof Error) {
+        if (error.message.includes('fetch') || error.message.includes('network')) {
+          console.log('[ProContext] Network error during sign out, but local state cleared');
+          return;
+        }
+      }
       throw error;
     }
-    setAuthUser(null);
-    setSession(null);
-    setSupabaseUser(null);
-    console.log('[ProContext] User signed out');
   }, []);
 
   const isLoading = proQuery.isLoading || extractionsQuery.isLoading || onboardingQuery.isLoading || authLoading;
