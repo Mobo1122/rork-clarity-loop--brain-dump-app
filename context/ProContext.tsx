@@ -97,7 +97,18 @@ export const [ProProvider, usePro] = createContextHook(() => {
     queryKey: ['auth_user'],
     queryFn: async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('[ProContext] Error fetching auth session:', error);
+          if (error.message.includes('refresh_token_not_found') || error.message.includes('Invalid Refresh Token')) {
+            console.log('[ProContext] Invalid refresh token detected, clearing session');
+            await supabase.auth.signOut();
+            await AsyncStorage.removeItem('loops-auth-token');
+          }
+          return null;
+        }
+        
         if (session?.user) {
           const user: AuthUser = {
             id: session.user.id,
@@ -110,15 +121,35 @@ export const [ProProvider, usePro] = createContextHook(() => {
         return null;
       } catch (error) {
         console.error('[ProContext] Error fetching auth session:', error);
+        if (error instanceof Error) {
+          if (error.message.includes('refresh_token_not_found') || error.message.includes('Invalid Refresh Token')) {
+            console.log('[ProContext] Invalid refresh token detected, clearing session');
+            await supabase.auth.signOut();
+            await AsyncStorage.removeItem('loops-auth-token');
+          }
+        }
         return null;
       }
     },
-    retry: 2,
-    retryDelay: 1000,
+    retry: false,
   });
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session }, error }) => {
+      if (error) {
+        console.error('[ProContext] Error loading initial session:', error);
+        if (error.message.includes('refresh_token_not_found') || error.message.includes('Invalid Refresh Token')) {
+          console.log('[ProContext] Invalid refresh token on init, clearing session');
+          await supabase.auth.signOut();
+          await AsyncStorage.removeItem('loops-auth-token');
+        }
+        setSession(null);
+        setSupabaseUser(null);
+        setAuthUser(null);
+        setAuthLoading(false);
+        return;
+      }
+      
       setSession(session);
       setSupabaseUser(session?.user ?? null);
       if (session?.user) {
