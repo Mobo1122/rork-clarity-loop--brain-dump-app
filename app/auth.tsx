@@ -13,7 +13,6 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { 
   Sparkles, 
   Mail, 
@@ -156,10 +155,7 @@ export default function AuthScreen() {
 
 
   return (
-    <LinearGradient
-      colors={['#0A1A28', '#0A0A0F']}
-      style={styles.container}
-    >
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
@@ -174,7 +170,7 @@ export default function AuthScreen() {
         >
           <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
             <View style={styles.header}>
-              <View style={styles.logoContainer}>
+              <View style={[styles.logoContainer, { backgroundColor: colors.primaryDim }]}>
                 <Sparkles size={32} color={colors.primary} />
               </View>
               <Text style={[styles.title, { color: colors.text }]}>
@@ -189,7 +185,13 @@ export default function AuthScreen() {
 
             <View style={styles.form}>
               {mode === 'signup' && (
-                <View style={styles.inputContainer}>
+                <View style={[
+                  styles.inputContainer,
+                  { 
+                    backgroundColor: colors.inputBackground, 
+                    borderColor: colors.cardBorder 
+                  }
+                ]}>
                   <View style={styles.inputIcon}>
                     <User size={20} color={colors.textSecondary} />
                   </View>
@@ -204,7 +206,13 @@ export default function AuthScreen() {
                 </View>
               )}
 
-              <View style={styles.inputContainer}>
+              <View style={[
+                styles.inputContainer,
+                { 
+                  backgroundColor: colors.inputBackground, 
+                  borderColor: colors.cardBorder 
+                }
+              ]}>
                 <View style={styles.inputIcon}>
                   <Mail size={20} color={colors.textSecondary} />
                 </View>
@@ -225,7 +233,13 @@ export default function AuthScreen() {
                 )}
               </View>
 
-              <View style={styles.inputContainer}>
+              <View style={[
+                styles.inputContainer,
+                { 
+                  backgroundColor: colors.inputBackground, 
+                  borderColor: colors.cardBorder 
+                }
+              ]}>
                 <View style={styles.inputIcon}>
                   <Lock size={20} color={colors.textSecondary} />
                 </View>
@@ -260,7 +274,7 @@ export default function AuthScreen() {
                           {
                             backgroundColor: passwordStrength >= level 
                               ? getStrengthColor() 
-                              : 'rgba(255,255,255,0.1)',
+                              : colors.cardBorder,
                           },
                         ]}
                       />
@@ -273,7 +287,13 @@ export default function AuthScreen() {
               )}
 
               {mode === 'signup' && (
-                <View style={styles.inputContainer}>
+                <View style={[
+                  styles.inputContainer,
+                  { 
+                    backgroundColor: colors.inputBackground, 
+                    borderColor: colors.cardBorder 
+                  }
+                ]}>
                   <View style={styles.inputIcon}>
                     <Lock size={20} color={colors.textSecondary} />
                   </View>
@@ -304,24 +324,30 @@ export default function AuthScreen() {
                 disabled={!canSubmit() || isLoading}
                 activeOpacity={0.8}
               >
-                <Text style={[styles.submitButtonText, { color: colors.background }]}>
+                <Text style={styles.submitButtonText}>
                   {isLoading 
                     ? 'Please wait...' 
                     : mode === 'signup' ? 'Create Account' : 'Sign In'}
                 </Text>
-                {!isLoading && <ArrowRight size={20} color={colors.background} />}
+                {!isLoading && <ArrowRight size={20} color="#FFFFFF" />}
               </TouchableOpacity>
             </View>
 
             <View style={styles.dividerContainer}>
-              <View style={styles.dividerLine} />
+              <View style={[styles.dividerLine, { backgroundColor: colors.cardBorder }]} />
               <Text style={[styles.dividerText, { color: colors.textTertiary }]}>or continue with</Text>
-              <View style={styles.dividerLine} />
+              <View style={[styles.dividerLine, { backgroundColor: colors.cardBorder }]} />
             </View>
 
             <View style={styles.socialButtons}>
               <TouchableOpacity
-                style={styles.socialButton}
+                style={[
+                  styles.socialButton,
+                  { 
+                    backgroundColor: colors.card, 
+                    borderColor: colors.cardBorder 
+                  }
+                ]}
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                   Alert.alert('Apple Sign In', 'Apple Sign In will be available soon. Please use email/password for now.');
@@ -335,7 +361,13 @@ export default function AuthScreen() {
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.socialButton}
+                style={[
+                  styles.socialButton,
+                  { 
+                    backgroundColor: colors.card, 
+                    borderColor: colors.cardBorder 
+                  }
+                ]}
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                   Alert.alert('Google Sign In', 'Google Sign In will be available soon. Please use email/password for now.');
@@ -367,7 +399,7 @@ export default function AuthScreen() {
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </LinearGradient>
+    </View>
   );
 }
 
@@ -394,7 +426,6 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 20,
-    backgroundColor: 'rgba(0, 217, 255, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 24,
@@ -415,10 +446,8 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   inputIcon: {
     paddingLeft: 16,
@@ -468,6 +497,7 @@ const styles = StyleSheet.create({
   submitButtonText: {
     fontSize: 17,
     fontWeight: '600' as const,
+    color: '#FFFFFF',
   },
   dividerContainer: {
     flexDirection: 'row',
@@ -478,7 +508,6 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   dividerText: {
     fontSize: 13,
@@ -494,11 +523,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     paddingVertical: 14,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   socialButtonText: {
     fontSize: 15,

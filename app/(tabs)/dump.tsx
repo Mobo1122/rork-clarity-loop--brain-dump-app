@@ -132,7 +132,7 @@ export default function BrainDumpScreen() {
               Empty your mind. We&apos;ll extract the loops.
             </Text>
             {!isPro && (
-              <View style={styles.limitBadge}>
+              <View style={[styles.limitBadge, { backgroundColor: isDark ? 'rgba(245, 158, 11, 0.1)' : 'rgba(217, 119, 6, 0.1)' }]}>
                 <Sparkles size={14} color={colors.warning} />
                 <Text style={[styles.limitText, { color: colors.warning }]}>
                   {extractionsRemaining} free extraction{extractionsRemaining !== 1 ? 's' : ''} left today
@@ -336,7 +336,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(245, 158, 11, 0.1)',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
