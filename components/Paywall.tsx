@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,8 @@ import {
   Animated,
   Modal,
   Dimensions,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { 
@@ -16,10 +18,13 @@ import {
   Crown,
   Check,
   Star,
+  RefreshCw,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
+import Purchases, { PurchasesPackage } from 'react-native-purchases';
 import Colors from '@/constants/colors';
 import { usePro, PaywallTrigger } from '@/context/ProContext';
+import { useTheme } from '@/context/ThemeContext';
 
 const { height } = Dimensions.get('window');
 
@@ -58,12 +63,18 @@ const PRO_FEATURES = [
 ];
 
 export default function Paywall({ visible, onClose, trigger = 'limit' }: PaywallProps) {
-  const { upgradeToPro } = usePro();
+  const { purchasePackage, restorePurchases } = usePro();
+  const { colors } = useTheme();
   const slideAnim = useRef(new Animated.Value(height)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const [offerings, setOfferings] = useState<PurchasesPackage[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isPurchasing, setIsPurchasing] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
 
   useEffect(() => {
     if (visible) {
+      fetchOfferings();
       Animated.parallel([
         Animated.spring(slideAnim, {
           toValue: 0,
@@ -83,6 +94,21 @@ export default function Paywall({ visible, onClose, trigger = 'limit' }: Paywall
     }
   }, [visible, slideAnim, fadeAnim]);
 
+  const fetchOfferings = async () => {
+    try {
+      setIsLoading(true);
+      const availableOfferings = await Purchases.getOfferings();
+      if (availableOfferings.current?.availablePackages) {
+        setOfferings(availableOfferings.current.availablePackages);
+        console.log('[Paywall] Loaded offerings:', availableOfferings.current.availablePackages.length);
+      }
+    } catch (error) {
+      console.error('[Paywall] Error fetching offerings:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleClose = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     Animated.parallel([
@@ -99,9 +125,33 @@ export default function Paywall({ visible, onClose, trigger = 'limit' }: Paywall
     ]).start(() => onClose());
   };
 
-  const handlePurchase = (plan: 'monthly' | 'yearly') => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    upgradeToPro(plan);
+  const handlePurchase = async (pkg: PurchasesPackage) => {
+    try {
+      setIsPurchasing(true);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      await purchasePackage(pkg);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (error: any) {
+      if (!error.userCancelled) {
+        Alert.alert('Purchase Failed', 'Unable to complete purchase. Please try again.');
+      }
+    } finally {
+      setIsPurchasing(false);
+    }
+  };
+
+  const handleRestore = async () => {
+    try {
+      setIsRestoring(true);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      await restorePurchases();
+      Alert.alert('Success', 'Purchases restored successfully!');
+      onClose();
+    } catch {
+      Alert.alert('Restore Failed', 'No purchases found to restore.');
+    } finally {
+      setIsRestoring(false);
+    }
   };
 
   const content = PAYWALL_CONTENT[trigger];
@@ -149,51 +199,87 @@ export default function Paywall({ visible, onClose, trigger = 'limit' }: Paywall
             <Text style={styles.subtitle}>{content.subtitle}</Text>
           </View>
 
-          <View style={styles.featuresContainer}>
+          <View style={[styles.featuresContainer, { backgroundColor: colors.card }]}>
             {PRO_FEATURES.map((feature, index) => (
               <View key={index} style={styles.featureItem}>
                 <Check size={18} color={Colors.success} />
-                <Text style={styles.featureText}>{feature}</Text>
+                <Text style={[styles.featureText, { color: colors.text }]}>{feature}</Text>
               </View>
             ))}
           </View>
 
-          <View style={styles.plansContainer}>
-            <TouchableOpacity
-              style={styles.planCard}
-              onPress={() => handlePurchase('monthly')}
-              activeOpacity={0.8}
-            >
-              <View style={styles.planHeader}>
-                <Zap size={20} color={Colors.primary} />
-                <Text style={styles.planName}>Monthly</Text>
-              </View>
-              <Text style={styles.planPrice}>$9.99</Text>
-              <Text style={styles.planPeriod}>per month</Text>
-            </TouchableOpacity>
+          {isLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={colors.primary} />
+              <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading plans...</Text>
+            </View>
+          ) : (
+            <View style={styles.plansContainer}>
+              {offerings.map((pkg, index) => {
+                const isYearly = pkg.identifier.includes('annual') || pkg.identifier.includes('yearly');
+                const product = pkg.product;
+                
+                return (
+                  <TouchableOpacity
+                    key={pkg.identifier}
+                    style={[
+                      styles.planCard,
+                      { backgroundColor: colors.card, borderColor: colors.cardBorder },
+                      isYearly && styles.planCardBest,
+                    ]}
+                    onPress={() => handlePurchase(pkg)}
+                    activeOpacity={0.8}
+                    disabled={isPurchasing}
+                  >
+                    {isYearly && (
+                      <View style={styles.bestBadge}>
+                        <Star size={12} color="#FFD700" fill="#FFD700" />
+                        <Text style={styles.bestBadgeText}>BEST VALUE</Text>
+                      </View>
+                    )}
+                    <View style={styles.planHeader}>
+                      {isYearly ? (
+                        <Sparkles size={20} color="#FFD700" />
+                      ) : (
+                        <Zap size={20} color={colors.primary} />
+                      )}
+                      <Text style={[styles.planName, { color: colors.text }]}>
+                        {pkg.product.title}
+                      </Text>
+                    </View>
+                    <Text style={[styles.planPrice, { color: colors.text }]}>
+                      {product.priceString}
+                    </Text>
+                    <Text style={[styles.planPeriod, { color: colors.textSecondary }]}>
+                      {product.subscriptionPeriod}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
 
+          <View style={styles.footer}>
             <TouchableOpacity
-              style={[styles.planCard, styles.planCardBest]}
-              onPress={() => handlePurchase('yearly')}
-              activeOpacity={0.8}
+              onPress={handleRestore}
+              disabled={isRestoring}
+              style={styles.restoreButton}
             >
-              <View style={styles.bestBadge}>
-                <Star size={12} color="#FFD700" fill="#FFD700" />
-                <Text style={styles.bestBadgeText}>BEST VALUE</Text>
-              </View>
-              <View style={styles.planHeader}>
-                <Sparkles size={20} color="#FFD700" />
-                <Text style={styles.planName}>Yearly</Text>
-              </View>
-              <Text style={styles.planPrice}>$79.99</Text>
-              <Text style={styles.planPeriod}>per year</Text>
-              <Text style={styles.planSavings}>Save 33%</Text>
+              {isRestoring ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : (
+                <>
+                  <RefreshCw size={14} color={colors.primary} />
+                  <Text style={[styles.restoreText, { color: colors.primary }]}>
+                    Restore Purchases
+                  </Text>
+                </>
+              )}
             </TouchableOpacity>
+            <Text style={[styles.terms, { color: colors.textTertiary }]}>
+              Cancel anytime
+            </Text>
           </View>
-
-          <Text style={styles.terms}>
-            Cancel anytime • Restore purchases
-          </Text>
         </Animated.View>
       </View>
     </Modal>
@@ -215,7 +301,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     paddingHorizontal: 24,
     paddingBottom: 40,
-    maxHeight: height * 0.85,
+    maxHeight: height * 0.9,
   },
   handle: {
     width: 40,
@@ -265,11 +351,19 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   featuresContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
     borderRadius: 16,
     padding: 16,
     gap: 12,
     marginBottom: 24,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+    gap: 12,
+  },
+  loadingText: {
+    fontSize: 14,
   },
   featureItem: {
     flexDirection: 'row',
@@ -287,12 +381,10 @@ const styles = StyleSheet.create({
   },
   planCard: {
     flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 16,
     padding: 16,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   planCardBest: {
     backgroundColor: 'rgba(255, 215, 0, 0.08)',
@@ -336,11 +428,19 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.textSecondary,
   },
-  planSavings: {
-    fontSize: 12,
+  footer: {
+    gap: 12,
+    alignItems: 'center',
+  },
+  restoreButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+  },
+  restoreText: {
+    fontSize: 14,
     fontWeight: '600' as const,
-    color: Colors.success,
-    marginTop: 4,
   },
   terms: {
     fontSize: 12,

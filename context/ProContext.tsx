@@ -4,18 +4,20 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
+import Purchases, { CustomerInfo } from 'react-native-purchases';
 
-const PRO_KEY = 'pro_status';
 const EXTRACTIONS_KEY = 'daily_extractions';
 const ONBOARDING_KEY = 'onboarding_completed';
+const PRO_ENTITLEMENT_ID = 'Loops Pro';
 
 export type PaywallTrigger = 'limit' | 'feature' | 'habit' | 'momentum';
 
 export interface ProStatus {
   isPro: boolean;
   plan: 'free' | 'monthly' | 'yearly';
-  expiresAt?: string;
-  purchasedAt?: string;
+  expiresAt?: string | null;
+  purchasedAt?: string | null;
+  willRenew?: boolean;
 }
 
 export interface DailyExtractions {
@@ -41,7 +43,7 @@ const FREE_EXTRACTION_LIMIT = 2;
 
 export const [ProProvider, usePro] = createContextHook(() => {
   const queryClient = useQueryClient();
-  const [proStatus, setProStatus] = useState<ProStatus>(defaultProStatus);
+  const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null);
   const [dailyExtractions, setDailyExtractions] = useState<DailyExtractions>({ count: 0, date: '' });
   const [onboardingCompleted, setOnboardingCompleted] = useState<boolean | null>(null);
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
@@ -51,11 +53,20 @@ export const [ProProvider, usePro] = createContextHook(() => {
   const [paywallTrigger, setPaywallTrigger] = useState<PaywallTrigger>('limit');
   const [authLoading, setAuthLoading] = useState(true);
 
-  const proQuery = useQuery({
-    queryKey: ['pro_status'],
+  const customerInfoQuery = useQuery({
+    queryKey: ['customer_info'],
     queryFn: async () => {
-      const stored = await AsyncStorage.getItem(PRO_KEY);
-      return stored ? JSON.parse(stored) as ProStatus : defaultProStatus;
+      try {
+        const info = await Purchases.getCustomerInfo();
+        console.log('[ProContext] Customer info fetched:', {
+          isPro: typeof info.entitlements.active[PRO_ENTITLEMENT_ID] !== 'undefined',
+          activeEntitlements: Object.keys(info.entitlements.active),
+        });
+        return info;
+      } catch (error) {
+        console.error('[ProContext] Error fetching customer info:', error);
+        return null;
+      }
     },
   });
 
@@ -143,8 +154,10 @@ export const [ProProvider, usePro] = createContextHook(() => {
   }, []);
 
   useEffect(() => {
-    if (proQuery.data) setProStatus(proQuery.data);
-  }, [proQuery.data]);
+    if (customerInfoQuery.data) {
+      setCustomerInfo(customerInfoQuery.data);
+    }
+  }, [customerInfoQuery.data]);
 
   useEffect(() => {
     if (extractionsQuery.data) setDailyExtractions(extractionsQuery.data);
@@ -158,13 +171,15 @@ export const [ProProvider, usePro] = createContextHook(() => {
     if (authQuery.data !== undefined) setAuthUser(authQuery.data);
   }, [authQuery.data]);
 
-  const { mutate: saveProStatus } = useMutation({
-    mutationFn: async (status: ProStatus) => {
-      await AsyncStorage.setItem(PRO_KEY, JSON.stringify(status));
-      return status;
+  const refreshCustomerInfo = useMutation({
+    mutationFn: async () => {
+      const info = await Purchases.getCustomerInfo();
+      console.log('[ProContext] Customer info refreshed');
+      return info;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['pro_status'] });
+    onSuccess: (data) => {
+      setCustomerInfo(data);
+      queryClient.invalidateQueries({ queryKey: ['customer_info'] });
     },
   });
 
@@ -183,6 +198,30 @@ export const [ProProvider, usePro] = createContextHook(() => {
   });
 
 
+
+  const proStatus = useMemo((): ProStatus => {
+    if (!customerInfo) return defaultProStatus;
+    
+    const proEntitlement = customerInfo.entitlements.active[PRO_ENTITLEMENT_ID];
+    if (!proEntitlement) return defaultProStatus;
+
+    const productId = proEntitlement.productIdentifier;
+    let plan: 'free' | 'monthly' | 'yearly' = 'free';
+    
+    if (productId?.includes('yearly') || productId?.includes('annual')) {
+      plan = 'yearly';
+    } else if (productId?.includes('monthly')) {
+      plan = 'monthly';
+    }
+
+    return {
+      isPro: true,
+      plan,
+      expiresAt: proEntitlement.expirationDate,
+      purchasedAt: proEntitlement.originalPurchaseDate,
+      willRenew: proEntitlement.willRenew,
+    };
+  }, [customerInfo]);
 
   const canExtract = useMemo(() => {
     if (proStatus.isPro) return true;
@@ -219,18 +258,38 @@ export const [ProProvider, usePro] = createContextHook(() => {
     setShowPaywall(false);
   }, []);
 
-  const upgradeToPro = useCallback((plan: 'monthly' | 'yearly') => {
-    const newStatus: ProStatus = {
-      isPro: true,
-      plan,
-      purchasedAt: new Date().toISOString(),
-      expiresAt: new Date(Date.now() + (plan === 'yearly' ? 365 : 30) * 24 * 60 * 60 * 1000).toISOString(),
-    };
-    setProStatus(newStatus);
-    saveProStatus(newStatus);
-    setShowPaywall(false);
-    console.log('[ProContext] Upgraded to Pro:', plan);
-  }, [saveProStatus]);
+  const purchasePackage = useCallback(async (packageToPurchase: any) => {
+    try {
+      console.log('[ProContext] Purchasing package:', packageToPurchase.identifier);
+      const { customerInfo: info } = await Purchases.purchasePackage(packageToPurchase);
+      console.log('[ProContext] Purchase successful');
+      setCustomerInfo(info);
+      queryClient.invalidateQueries({ queryKey: ['customer_info'] });
+      setShowPaywall(false);
+      return info;
+    } catch (error: any) {
+      if (error.userCancelled) {
+        console.log('[ProContext] Purchase cancelled by user');
+      } else {
+        console.error('[ProContext] Purchase error:', error);
+      }
+      throw error;
+    }
+  }, [queryClient]);
+
+  const restorePurchases = useCallback(async () => {
+    try {
+      console.log('[ProContext] Restoring purchases');
+      const info = await Purchases.restorePurchases();
+      console.log('[ProContext] Purchases restored');
+      setCustomerInfo(info);
+      queryClient.invalidateQueries({ queryKey: ['customer_info'] });
+      return info;
+    } catch (error) {
+      console.error('[ProContext] Restore error:', error);
+      throw error;
+    }
+  }, [queryClient]);
 
   const completeOnboarding = useCallback(() => {
     setOnboardingCompleted(true);
@@ -336,7 +395,21 @@ export const [ProProvider, usePro] = createContextHook(() => {
     }
   }, []);
 
-  const isLoading = proQuery.isLoading || extractionsQuery.isLoading || onboardingQuery.isLoading || authLoading;
+  useEffect(() => {
+    const listener = (info: CustomerInfo) => {
+      console.log('[ProContext] Customer info updated via listener');
+      setCustomerInfo(info);
+      queryClient.invalidateQueries({ queryKey: ['customer_info'] });
+    };
+
+    Purchases.addCustomerInfoUpdateListener(listener);
+
+    return () => {
+      Purchases.removeCustomerInfoUpdateListener(listener);
+    };
+  }, [queryClient]);
+
+  const isLoading = customerInfoQuery.isLoading || extractionsQuery.isLoading || onboardingQuery.isLoading || authLoading;
 
   return {
     proStatus,
@@ -348,7 +421,10 @@ export const [ProProvider, usePro] = createContextHook(() => {
     paywallTrigger,
     triggerPaywall,
     closePaywall,
-    upgradeToPro,
+    purchasePackage,
+    restorePurchases,
+    refreshCustomerInfo: refreshCustomerInfo.mutate,
+    customerInfo,
     onboardingCompleted,
     completeOnboarding,
     authUser,

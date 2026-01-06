@@ -3,8 +3,9 @@ import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect } from "react";
-import { View } from "react-native";
+import { View, Platform } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import Purchases from "react-native-purchases";
 import { LoopsProvider } from "@/context/LoopsContext";
 import { ProProvider, usePro } from "@/context/ProContext";
 import { ThemeProvider, useTheme } from "@/context/ThemeContext";
@@ -14,6 +15,25 @@ import { trpc, trpcClient } from "@/lib/trpc";
 SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
+
+function getRCToken() {
+  if (__DEV__ || Platform.OS === 'web') {
+    return process.env.EXPO_PUBLIC_REVENUECAT_TEST_API_KEY;
+  }
+  return Platform.select({
+    ios: process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY,
+    android: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY,
+    default: process.env.EXPO_PUBLIC_REVENUECAT_TEST_API_KEY,
+  });
+}
+
+const rcToken = getRCToken();
+if (rcToken) {
+  Purchases.configure({ apiKey: rcToken });
+  console.log('[RevenueCat] Configured with API key for platform:', Platform.OS);
+} else {
+  console.error('[RevenueCat] No API key found!');
+}
 
 function PaywallWrapper() {
   const { showPaywall, closePaywall, paywallTrigger } = usePro();
