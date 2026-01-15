@@ -18,12 +18,12 @@ import {
   ChevronRight,
   Moon,
   Crown,
-  Sparkles,
   Check,
   Sun,
   Smartphone,
   LogOut,
 } from 'lucide-react-native';
+import LoopIcon from '@/components/LoopIcon';
 import * as Haptics from 'expo-haptics';
 import { useLoops } from '@/context/LoopsContext';
 import { usePro } from '@/context/ProContext';
@@ -122,15 +122,15 @@ export default function SettingsScreen() {
               
               <View style={styles.proFeatures}>
                 <View style={styles.proFeatureItem}>
-                  <Sparkles size={16} color={colors.primary} />
+                  <LoopIcon size={16} color={colors.primary} />
                   <Text style={[styles.proFeatureText, { color: colors.textSecondary }]}>Unlimited AI extractions</Text>
                 </View>
                 <View style={styles.proFeatureItem}>
-                  <Sparkles size={16} color={colors.primary} />
+                  <LoopIcon size={16} color={colors.primary} />
                   <Text style={[styles.proFeatureText, { color: colors.textSecondary }]}>Window of Opportunity tracking</Text>
                 </View>
                 <View style={styles.proFeatureItem}>
-                  <Sparkles size={16} color={colors.primary} />
+                  <LoopIcon size={16} color={colors.primary} />
                   <Text style={[styles.proFeatureText, { color: colors.textSecondary }]}>Advanced analytics</Text>
                 </View>
               </View>

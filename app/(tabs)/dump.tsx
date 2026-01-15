@@ -12,7 +12,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Sparkles, Send, Brain, Trash2 } from 'lucide-react-native';
+import { Send, Brain, Trash2 } from 'lucide-react-native';
+import LoopIcon from '@/components/LoopIcon';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLoops } from '@/context/LoopsContext';
@@ -133,7 +134,7 @@ export default function BrainDumpScreen() {
             </Text>
             {!isPro && (
               <View style={[styles.limitBadge, { backgroundColor: isDark ? 'rgba(245, 158, 11, 0.1)' : 'rgba(217, 119, 6, 0.1)' }]}>
-                <Sparkles size={14} color={colors.warning} />
+                <LoopIcon size={14} color={colors.warning} />
                 <Text style={[styles.limitText, { color: colors.warning }]}>
                   {extractionsRemaining} free extraction{extractionsRemaining !== 1 ? 's' : ''} left today
                 </Text>
@@ -184,7 +185,7 @@ export default function BrainDumpScreen() {
             >
               {isProcessing ? (
                 <>
-                  <Sparkles size={22} color={isDark ? '#0A0A0F' : '#FFFFFF'} />
+                  <LoopIcon size={22} color={isDark ? '#0A0A0F' : '#FFFFFF'} />
                   <Text style={[styles.extractButtonText, { color: isDark ? '#0A0A0F' : '#FFFFFF' }]}>Extracting loops...</Text>
                 </>
               ) : (
@@ -213,7 +214,7 @@ export default function BrainDumpScreen() {
           ]}
         >
           <View style={styles.successContent}>
-            <Sparkles size={48} color={colors.success} />
+            <LoopIcon size={48} color={colors.success} />
             <Text style={[styles.successTitle, { color: colors.success }]}>
               {extractedCount} Loops Extracted!
             </Text>

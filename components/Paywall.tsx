@@ -13,13 +13,13 @@ import {
 import { BlurView } from 'expo-blur';
 import { 
   X, 
-  Sparkles, 
   Zap, 
   Crown,
   Check,
   Star,
   RefreshCw,
 } from 'lucide-react-native';
+import LoopIcon from '@/components/LoopIcon';
 import * as Haptics from 'expo-haptics';
 import Purchases, { PurchasesPackage } from 'react-native-purchases';
 import Colors from '@/constants/colors';
@@ -239,7 +239,7 @@ export default function Paywall({ visible, onClose, trigger = 'limit' }: Paywall
                     )}
                     <View style={styles.planHeader}>
                       {isYearly ? (
-                        <Sparkles size={20} color="#FFD700" />
+                        <LoopIcon size={20} color="#FFD700" />
                       ) : (
                         <Zap size={20} color={colors.primary} />
                       )}

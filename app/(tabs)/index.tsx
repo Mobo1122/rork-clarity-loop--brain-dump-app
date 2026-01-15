@@ -11,7 +11,8 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Circle, Sparkles, Archive, CheckCircle, Pin } from 'lucide-react-native';
+import { Circle, Archive, CheckCircle, Pin } from 'lucide-react-native';
+import LoopIcon from '@/components/LoopIcon';
 import * as Haptics from 'expo-haptics';
 import { useLoops } from '@/context/LoopsContext';
 import { LoopCategory, Loop } from '@/types';
@@ -205,7 +206,7 @@ export default function DashboardScreen() {
             <View style={[styles.statDivider, { backgroundColor: colors.cardBorder }]} />
             <View style={styles.statItem}>
               <View style={styles.statCircle}>
-                <Sparkles size={20} color={colors.warning} />
+                <LoopIcon size={20} color={colors.warning} />
                 <Text style={[styles.statNumber, { color: colors.text }]}>{quickWins.length}</Text>
               </View>
               <Text style={[styles.statLabel, { color: colors.textTertiary }]}>Quick Wins</Text>
@@ -267,7 +268,7 @@ export default function DashboardScreen() {
               isExpanded={expandedSections.quickWins}
               onToggle={() => toggleSection('quickWins')}
               accentColor={colors.warning}
-              icon={<Sparkles size={14} color={colors.warning} />}
+              icon={<LoopIcon size={14} color={colors.warning} />}
             >
               {filteredQuickWins.slice(0, 5).map(loop => (
                 <LoopCard 
@@ -347,7 +348,7 @@ export default function DashboardScreen() {
           {openLoops.length === 0 && !isLoading && !hasActiveFilters && (
             <View style={styles.emptyState}>
               <View style={[styles.emptyIcon, { backgroundColor: colors.primaryDim }]}>
-                <Sparkles size={48} color={colors.primary} />
+                <LoopIcon size={48} color={colors.primary} />
               </View>
               <Text style={[styles.emptyTitle, { color: colors.text }]}>Mind Clear</Text>
               <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
