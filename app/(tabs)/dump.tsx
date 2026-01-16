@@ -12,8 +12,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Send, Brain, Trash2 } from 'lucide-react-native';
-import LoopIcon from '@/components/LoopIcon';
+import { Send, Brain, Trash2, Sparkles } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLoops } from '@/context/LoopsContext';
@@ -21,17 +20,17 @@ import { usePro } from '@/context/ProContext';
 import { useTheme } from '@/context/ThemeContext';
 
 const MAX_CHARS = 5000;
-const PLACEHOLDER = `What's weighing on your mind?
+const PLACEHOLDER = `What's on your mind?
 
-Let it all out...
+Write freely - no structure needed...
 
-• That thing you keep forgetting
-• The call you've been avoiding
-• Ideas that won't let you sleep
-• Tomorrow's worries
-• Someday projects
+• Tasks you keep forgetting
+• Ideas floating around
+• Things you need to do
+• Random thoughts
+• Future plans
 
-No judgment. No structure. Just release.`;
+Just let it flow.`;
 
 export default function BrainDumpScreen() {
   const insets = useSafeAreaInsets();
@@ -108,7 +107,7 @@ export default function BrainDumpScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <LinearGradient
-        colors={isDark ? ['#2A1810', '#0A0A0F'] : ['#FEF3C7', '#F8F9FA']}
+        colors={isDark ? ['#1A1A2E', '#0A0A0F'] : ['#F0F4FF', '#F8F9FA']}
         style={StyleSheet.absoluteFillObject}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -129,14 +128,13 @@ export default function BrainDumpScreen() {
             <View style={[styles.iconContainer, { backgroundColor: colors.primaryDim }]}>
               <Brain size={32} color={colors.primary} />
             </View>
-            <Text style={[styles.titleSmall, { color: colors.textSecondary }]}>MENTAL CLUTTER IS EXPENSIVE</Text>
-            <Text style={[styles.title, { color: colors.text }]}>Empty Your Mind</Text>
+            <Text style={[styles.title, { color: colors.text }]}>Brain Dump</Text>
             <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-              Write freely. We&apos;ll transform chaos into actionable loops.
+              Write freely. We&apos;ll extract actionable loops from your thoughts.
             </Text>
             {!isPro && (
               <View style={[styles.limitBadge, { backgroundColor: isDark ? 'rgba(245, 158, 11, 0.1)' : 'rgba(217, 119, 6, 0.1)' }]}>
-                <LoopIcon size={14} color={colors.warning} />
+                <Sparkles size={14} color={colors.warning} />
                 <Text style={[styles.limitText, { color: colors.warning }]}>
                   {extractionsRemaining} free extraction{extractionsRemaining !== 1 ? 's' : ''} left today
                 </Text>
@@ -187,7 +185,7 @@ export default function BrainDumpScreen() {
             >
               {isProcessing ? (
                 <>
-                  <LoopIcon size={22} color={isDark ? '#0A0A0F' : '#FFFFFF'} />
+                  <Sparkles size={22} color={isDark ? '#0A0A0F' : '#FFFFFF'} />
                   <Text style={[styles.extractButtonText, { color: isDark ? '#0A0A0F' : '#FFFFFF' }]}>Extracting loops...</Text>
                 </>
               ) : (
@@ -200,7 +198,7 @@ export default function BrainDumpScreen() {
           </Animated.View>
 
           <View style={[styles.tips, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-            <Text style={[styles.tipsTitle, { color: colors.text }]}>💡 Pro tips</Text>
+            <Text style={[styles.tipsTitle, { color: colors.text }]}>💡 Tips</Text>
             <View style={styles.tipRow}>
               <View style={[styles.tipDot, { backgroundColor: colors.primary }]} />
               <Text style={[styles.tipItem, { color: colors.textSecondary }]}>Stream of consciousness works best</Text>
@@ -211,7 +209,7 @@ export default function BrainDumpScreen() {
             </View>
             <View style={styles.tipRow}>
               <View style={[styles.tipDot, { backgroundColor: colors.primary }]} />
-              <Text style={[styles.tipItem, { color: colors.textSecondary }]}>Action words: call, email, buy, check</Text>
+              <Text style={[styles.tipItem, { color: colors.textSecondary }]}>Use action words: call, email, buy, check</Text>
             </View>
           </View>
         </ScrollView>
@@ -225,7 +223,7 @@ export default function BrainDumpScreen() {
           ]}
         >
           <View style={styles.successContent}>
-            <LoopIcon size={48} color={colors.success} />
+            <Sparkles size={48} color={colors.success} />
             <Text style={[styles.successTitle, { color: colors.success }]}>
               {extractedCount} Loops Extracted!
             </Text>
@@ -261,15 +259,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 16,
   },
-  titleSmall: {
-    fontSize: 11,
-    fontWeight: '600' as const,
-    letterSpacing: 1.5,
-    marginBottom: 8,
-    opacity: 0.7,
-  },
   title: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: '700' as const,
     marginBottom: 10,
     letterSpacing: -0.5,
