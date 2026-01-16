@@ -12,13 +12,13 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { 
+  Sparkles, 
   Brain, 
   Zap, 
   Target,
   ArrowRight,
   Check,
 } from 'lucide-react-native';
-import LoopIcon from '@/components/LoopIcon';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
 import { usePro } from '@/context/ProContext';
@@ -146,7 +146,7 @@ export default function OnboardingScreen() {
         ]}
       >
         <View style={styles.logoContainer}>
-          <LoopIcon size={56} color={colors.primary} />
+          <Sparkles size={56} color={colors.primary} />
         </View>
         <Text style={[styles.splashTitle, { color: colors.text }]}>LOOPS</Text>
         <Animated.Text
@@ -406,7 +406,7 @@ export default function OnboardingScreen() {
             activeOpacity={0.8}
           >
             <Text style={[styles.getStartedText, { color: colors.background }]}>Get Started</Text>
-            <LoopIcon size={20} color={colors.background} />
+            <Sparkles size={20} color={colors.background} />
           </TouchableOpacity>
         </View>
       </LinearGradient>

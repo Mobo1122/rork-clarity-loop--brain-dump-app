@@ -14,6 +14,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { 
+  Sparkles, 
   Mail, 
   Lock, 
   User,
@@ -22,7 +23,6 @@ import {
   ArrowRight,
   Check,
 } from 'lucide-react-native';
-import LoopIcon from '@/components/LoopIcon';
 import { Svg, Path } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/context/ThemeContext';
@@ -171,7 +171,7 @@ export default function AuthScreen() {
           <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
             <View style={styles.header}>
               <View style={[styles.logoContainer, { backgroundColor: colors.primaryDim }]}>
-                <LoopIcon size={32} color={colors.primary} />
+                <Sparkles size={32} color={colors.primary} />
               </View>
               <Text style={[styles.title, { color: colors.text }]}>
                 {mode === 'signup' ? 'Create Account' : 'Welcome Back'}

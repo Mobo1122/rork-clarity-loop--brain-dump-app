@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Send, Brain, Trash2, Sparkles } from 'lucide-react-native';
+import { Sparkles, Send, Brain, Trash2 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLoops } from '@/context/LoopsContext';
@@ -20,17 +20,16 @@ import { usePro } from '@/context/ProContext';
 import { useTheme } from '@/context/ThemeContext';
 
 const MAX_CHARS = 5000;
-const PLACEHOLDER = `What's on your mind?
+const PLACEHOLDER = `What is cluttering your mind?
 
-Write freely - no structure needed...
+Just dump everything here...
+- Things you need to do
+- Calls to make
+- Ideas floating around
+- Worries or concerns
+- Projects to start
 
-• Tasks you keep forgetting
-• Ideas floating around
-• Things you need to do
-• Random thoughts
-• Future plans
-
-Just let it flow.`;
+Don't organize. Just dump.`;
 
 export default function BrainDumpScreen() {
   const insets = useSafeAreaInsets();
@@ -107,7 +106,7 @@ export default function BrainDumpScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <LinearGradient
-        colors={isDark ? ['#1A1A2E', '#0A0A0F'] : ['#F0F4FF', '#F8F9FA']}
+        colors={isDark ? ['#2A1810', '#0A0A0F'] : ['#FEF3C7', '#F8F9FA']}
         style={StyleSheet.absoluteFillObject}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -130,7 +129,7 @@ export default function BrainDumpScreen() {
             </View>
             <Text style={[styles.title, { color: colors.text }]}>Brain Dump</Text>
             <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-              Write freely. We&apos;ll extract actionable loops from your thoughts.
+              Empty your mind. We&apos;ll extract the loops.
             </Text>
             {!isPro && (
               <View style={[styles.limitBadge, { backgroundColor: isDark ? 'rgba(245, 158, 11, 0.1)' : 'rgba(217, 119, 6, 0.1)' }]}>
@@ -198,19 +197,10 @@ export default function BrainDumpScreen() {
           </Animated.View>
 
           <View style={[styles.tips, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-            <Text style={[styles.tipsTitle, { color: colors.text }]}>💡 Tips</Text>
-            <View style={styles.tipRow}>
-              <View style={[styles.tipDot, { backgroundColor: colors.primary }]} />
-              <Text style={[styles.tipItem, { color: colors.textSecondary }]}>Stream of consciousness works best</Text>
-            </View>
-            <View style={styles.tipRow}>
-              <View style={[styles.tipDot, { backgroundColor: colors.primary }]} />
-              <Text style={[styles.tipItem, { color: colors.textSecondary }]}>New lines help separate thoughts</Text>
-            </View>
-            <View style={styles.tipRow}>
-              <View style={[styles.tipDot, { backgroundColor: colors.primary }]} />
-              <Text style={[styles.tipItem, { color: colors.textSecondary }]}>Use action words: call, email, buy, check</Text>
-            </View>
+            <Text style={[styles.tipsTitle, { color: colors.textSecondary }]}>Tips for better extraction:</Text>
+            <Text style={[styles.tipItem, { color: colors.textTertiary }]}>• Write freely, do not worry about structure</Text>
+            <Text style={[styles.tipItem, { color: colors.textTertiary }]}>• Separate thoughts with new lines or periods</Text>
+            <Text style={[styles.tipItem, { color: colors.textTertiary }]}>• Include action words: call, email, check, buy</Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -262,14 +252,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '700' as const,
-    marginBottom: 10,
-    letterSpacing: -0.5,
+    marginBottom: 8,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 15,
     textAlign: 'center',
-    lineHeight: 22,
-    maxWidth: 280,
   },
   inputContainer: {
     borderRadius: 20,
@@ -320,25 +307,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   tipsTitle: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600' as const,
-    marginBottom: 14,
-  },
-  tipRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  tipDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginRight: 12,
+    marginBottom: 12,
   },
   tipItem: {
     fontSize: 14,
-    lineHeight: 20,
-    flex: 1,
+    lineHeight: 22,
   },
   successOverlay: {
     ...StyleSheet.absoluteFillObject,
