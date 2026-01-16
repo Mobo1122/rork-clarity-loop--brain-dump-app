@@ -21,16 +21,17 @@ import { usePro } from '@/context/ProContext';
 import { useTheme } from '@/context/ThemeContext';
 
 const MAX_CHARS = 5000;
-const PLACEHOLDER = `What is cluttering your mind?
+const PLACEHOLDER = `What's weighing on your mind?
 
-Just dump everything here...
-- Things you need to do
-- Calls to make
-- Ideas floating around
-- Worries or concerns
-- Projects to start
+Let it all out...
 
-Don't organize. Just dump.`;
+• That thing you keep forgetting
+• The call you've been avoiding
+• Ideas that won't let you sleep
+• Tomorrow's worries
+• Someday projects
+
+No judgment. No structure. Just release.`;
 
 export default function BrainDumpScreen() {
   const insets = useSafeAreaInsets();
@@ -128,9 +129,10 @@ export default function BrainDumpScreen() {
             <View style={[styles.iconContainer, { backgroundColor: colors.primaryDim }]}>
               <Brain size={32} color={colors.primary} />
             </View>
-            <Text style={[styles.title, { color: colors.text }]}>Brain Dump</Text>
+            <Text style={[styles.titleSmall, { color: colors.textSecondary }]}>MENTAL CLUTTER IS EXPENSIVE</Text>
+            <Text style={[styles.title, { color: colors.text }]}>Empty Your Mind</Text>
             <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-              Empty your mind. We&apos;ll extract the loops.
+              Write freely. We&apos;ll transform chaos into actionable loops.
             </Text>
             {!isPro && (
               <View style={[styles.limitBadge, { backgroundColor: isDark ? 'rgba(245, 158, 11, 0.1)' : 'rgba(217, 119, 6, 0.1)' }]}>
@@ -198,10 +200,19 @@ export default function BrainDumpScreen() {
           </Animated.View>
 
           <View style={[styles.tips, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-            <Text style={[styles.tipsTitle, { color: colors.textSecondary }]}>Tips for better extraction:</Text>
-            <Text style={[styles.tipItem, { color: colors.textTertiary }]}>• Write freely, do not worry about structure</Text>
-            <Text style={[styles.tipItem, { color: colors.textTertiary }]}>• Separate thoughts with new lines or periods</Text>
-            <Text style={[styles.tipItem, { color: colors.textTertiary }]}>• Include action words: call, email, check, buy</Text>
+            <Text style={[styles.tipsTitle, { color: colors.text }]}>💡 Pro tips</Text>
+            <View style={styles.tipRow}>
+              <View style={[styles.tipDot, { backgroundColor: colors.primary }]} />
+              <Text style={[styles.tipItem, { color: colors.textSecondary }]}>Stream of consciousness works best</Text>
+            </View>
+            <View style={styles.tipRow}>
+              <View style={[styles.tipDot, { backgroundColor: colors.primary }]} />
+              <Text style={[styles.tipItem, { color: colors.textSecondary }]}>New lines help separate thoughts</Text>
+            </View>
+            <View style={styles.tipRow}>
+              <View style={[styles.tipDot, { backgroundColor: colors.primary }]} />
+              <Text style={[styles.tipItem, { color: colors.textSecondary }]}>Action words: call, email, buy, check</Text>
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -250,14 +261,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 16,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: '700' as const,
+  titleSmall: {
+    fontSize: 11,
+    fontWeight: '600' as const,
+    letterSpacing: 1.5,
     marginBottom: 8,
+    opacity: 0.7,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: '700' as const,
+    marginBottom: 10,
+    letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 15,
+    fontSize: 16,
     textAlign: 'center',
+    lineHeight: 22,
+    maxWidth: 280,
   },
   inputContainer: {
     borderRadius: 20,
@@ -308,13 +329,25 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   tipsTitle: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600' as const,
-    marginBottom: 12,
+    marginBottom: 14,
+  },
+  tipRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  tipDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 12,
   },
   tipItem: {
     fontSize: 14,
-    lineHeight: 22,
+    lineHeight: 20,
+    flex: 1,
   },
   successOverlay: {
     ...StyleSheet.absoluteFillObject,

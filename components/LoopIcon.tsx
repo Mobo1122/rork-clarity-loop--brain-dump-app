@@ -1,5 +1,5 @@
 import React from 'react';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Defs, LinearGradient, Stop, Path } from 'react-native-svg';
 
 interface LoopIconProps {
   size?: number;
@@ -9,36 +9,30 @@ interface LoopIconProps {
 
 export default function LoopIcon({ 
   size = 24, 
-  color = '#00D9FF',
+  color,
   strokeWidth = 2.5
 }: LoopIconProps) {
+  const useGradient = !color;
+  
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Defs>
+        <LinearGradient id="loopGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+          <Stop offset="0%" stopColor="#00D9FF" stopOpacity="1" />
+          <Stop offset="40%" stopColor="#00B8D9" stopOpacity="1" />
+          <Stop offset="100%" stopColor="#0891B2" stopOpacity="0.7" />
+        </LinearGradient>
+      </Defs>
       <Path
-        d="M12 3C7.03 3 3 7.03 3 12C3 16.97 7.03 21 12 21C16.97 21 21 16.97 21 12"
-        stroke={color}
+        d="M12 2.5
+           A9.5 9.5 0 0 1 21.5 12
+           A9.5 9.5 0 0 1 12 21.5
+           A9.5 9.5 0 0 1 2.5 12
+           A9.5 9.5 0 0 1 10.5 2.7"
+        stroke={useGradient ? "url(#loopGradient)" : color}
         strokeWidth={strokeWidth}
         strokeLinecap="round"
-      />
-      <Path
-        d="M21 12C21 7.03 16.97 3 12 3"
-        stroke={color}
-        strokeWidth={strokeWidth}
-        strokeLinecap="round"
-        opacity={0.4}
-      />
-      <Path
-        d="M12 8C9.79 8 8 9.79 8 12C8 14.21 9.79 16 12 16C14.21 16 16 14.21 16 12"
-        stroke={color}
-        strokeWidth={strokeWidth}
-        strokeLinecap="round"
-      />
-      <Path
-        d="M16 12C16 9.79 14.21 8 12 8"
-        stroke={color}
-        strokeWidth={strokeWidth}
-        strokeLinecap="round"
-        opacity={0.4}
+        fill="none"
       />
     </Svg>
   );
