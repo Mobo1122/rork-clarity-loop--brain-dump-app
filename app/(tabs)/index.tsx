@@ -11,7 +11,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Circle, Archive, CheckCircle, Pin, Zap } from 'lucide-react-native';
+import { Circle, Archive, CheckCircle, Pin } from 'lucide-react-native';
 import LoopIcon from '@/components/LoopIcon';
 import * as Haptics from 'expo-haptics';
 import { useLoops } from '@/context/LoopsContext';
@@ -206,7 +206,7 @@ export default function DashboardScreen() {
             <View style={[styles.statDivider, { backgroundColor: colors.cardBorder }]} />
             <View style={styles.statItem}>
               <View style={styles.statCircle}>
-                <Zap size={20} color={colors.warning} />
+                <LoopIcon size={20} color={colors.warning} />
                 <Text style={[styles.statNumber, { color: colors.text }]}>{quickWins.length}</Text>
               </View>
               <Text style={[styles.statLabel, { color: colors.textTertiary }]}>Quick Wins</Text>
@@ -268,7 +268,7 @@ export default function DashboardScreen() {
               isExpanded={expandedSections.quickWins}
               onToggle={() => toggleSection('quickWins')}
               accentColor={colors.warning}
-              icon={<Zap size={14} color={colors.warning} />}
+              icon={<LoopIcon size={14} color={colors.warning} />}
             >
               {filteredQuickWins.slice(0, 5).map(loop => (
                 <LoopCard 
