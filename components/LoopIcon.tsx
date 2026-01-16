@@ -15,29 +15,30 @@ export default function LoopIcon({
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path
-        d="M12 4C7.58 4 4 7.58 4 12C4 14.21 4.89 16.21 6.34 17.66L8.46 15.54C7.56 14.64 7 13.39 7 12C7 9.24 9.24 7 12 7C13.39 7 14.64 7.56 15.54 8.46L17.66 6.34C16.21 4.89 14.21 4 12 4Z"
-        fill={color}
-        opacity={0.3}
-      />
-      <Path
-        d="M12 4C16.42 4 20 7.58 20 12C20 16.42 16.42 20 12 20C9.79 20 7.79 19.11 6.34 17.66"
+        d="M12 3C7.03 3 3 7.03 3 12C3 16.97 7.03 21 12 21C16.97 21 21 16.97 21 12"
         stroke={color}
         strokeWidth={strokeWidth}
         strokeLinecap="round"
       />
       <Path
-        d="M12 4C7.58 4 4 7.58 4 12C4 14.21 4.89 16.21 6.34 17.66"
+        d="M21 12C21 7.03 16.97 3 12 3"
         stroke={color}
         strokeWidth={strokeWidth}
         strokeLinecap="round"
-        strokeDasharray="0 0"
+        opacity={0.4}
       />
       <Path
-        d="M6.34 17.66L4 20M6.34 17.66L8.68 20"
+        d="M12 8C9.79 8 8 9.79 8 12C8 14.21 9.79 16 12 16C14.21 16 16 14.21 16 12"
         stroke={color}
         strokeWidth={strokeWidth}
         strokeLinecap="round"
-        strokeLinejoin="round"
+      />
+      <Path
+        d="M16 12C16 9.79 14.21 8 12 8"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        opacity={0.4}
       />
     </Svg>
   );
