@@ -1,9 +1,9 @@
 import React, { useCallback, useRef, useState, useEffect, useMemo } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
   TouchableOpacity,
   Animated,
   RefreshControl,
@@ -11,7 +11,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Circle, Sparkles, Archive, CheckCircle, Pin } from 'lucide-react-native';
+import { Leaf, Archive, Check } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useLoops } from '@/context/LoopsContext';
 import { LoopCategory, Loop } from '@/types';
@@ -20,25 +20,33 @@ import StreakBadge from '@/components/StreakBadge';
 import LoopCard from '@/components/LoopCard';
 import CollapsibleSection from '@/components/CollapsibleSection';
 import CategoryFilter from '@/components/CategoryFilter';
+import EnsoIcon from '@/components/EnsoIcon';
 import { getClarityMessage } from '@/utils/helpers';
 import { actionQuotes, clarityQuotes, getRotatingQuote, Quote } from '@/mocks/quotes';
 import { useTheme } from '@/context/ThemeContext';
 
+/**
+ * Dashboard - The Zen Mind Garden
+ *
+ * A contemplative space to observe and tend to your mental loops.
+ * Designed with ma (negative space), kanso (simplicity),
+ * and shizen (naturalness) principles.
+ */
 export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { colors } = useTheme();
-  const { 
-    openLoops, 
-    closedLoops, 
+  const {
+    openLoops,
+    closedLoops,
     archivedLoops,
-    quickWins, 
+    quickWins,
     pinnedLoops,
-    streak, 
-    completeLoop, 
-    isLoading 
+    streak,
+    completeLoop,
+    isLoading,
   } = useLoops();
-  
+
   const [refreshing, setRefreshing] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<Set<LoopCategory>>(new Set());
@@ -50,7 +58,7 @@ export default function DashboardScreen() {
     closed: false,
     archived: false,
   });
-  
+
   const celebrationAnim = useRef(new Animated.Value(0)).current;
   const clarityQuoteAnim = useRef(new Animated.Value(0)).current;
   const [actionQuote, setActionQuote] = useState<Quote>(actionQuotes[0]);
@@ -61,29 +69,27 @@ export default function DashboardScreen() {
     const rotateQuotes = async () => {
       if (hasRotatedQuotes.current) return;
       hasRotatedQuotes.current = true;
-      
+
       try {
         const actionIndexStr = await AsyncStorage.getItem('actionQuoteIndex');
         const clarityIndexStr = await AsyncStorage.getItem('clarityQuoteIndex');
-        
+
         const actionIndex = actionIndexStr ? parseInt(actionIndexStr, 10) : 0;
         const clarityIndex = clarityIndexStr ? parseInt(clarityIndexStr, 10) : 0;
-        
+
         const { quote: newActionQuote, nextIndex: nextActionIndex } = getRotatingQuote(actionQuotes, actionIndex);
         const { quote: newClarityQuote, nextIndex: nextClarityIndex } = getRotatingQuote(clarityQuotes, clarityIndex);
-        
+
         setActionQuote(newActionQuote);
         setClarityQuote(newClarityQuote);
-        
+
         await AsyncStorage.setItem('actionQuoteIndex', nextActionIndex.toString());
         await AsyncStorage.setItem('clarityQuoteIndex', nextClarityIndex.toString());
-        
-        console.log('[Dashboard] Rotated quotes - action:', nextActionIndex, 'clarity:', nextClarityIndex);
       } catch (error) {
         console.error('[Dashboard] Error rotating quotes:', error);
       }
     };
-    
+
     rotateQuotes();
   }, []);
 
@@ -92,8 +98,8 @@ export default function DashboardScreen() {
       clarityQuoteAnim.setValue(0);
       Animated.timing(clarityQuoteAnim, {
         toValue: 1,
-        duration: 1500,
-        delay: 800,
+        duration: 2000,
+        delay: 1000,
         useNativeDriver: true,
       }).start();
     }
@@ -102,18 +108,18 @@ export default function DashboardScreen() {
   const handleComplete = useCallback((loopId: string) => {
     completeLoop(loopId);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    
+
     setShowCelebration(true);
     Animated.sequence([
       Animated.timing(celebrationAnim, {
         toValue: 1,
-        duration: 300,
+        duration: 400,
         useNativeDriver: true,
       }),
-      Animated.delay(800),
+      Animated.delay(1200),
       Animated.timing(celebrationAnim, {
         toValue: 0,
-        duration: 300,
+        duration: 400,
         useNativeDriver: true,
       }),
     ]).start(() => setShowCelebration(false));
@@ -133,7 +139,7 @@ export default function DashboardScreen() {
   }, []);
 
   const toggleCategory = useCallback((category: LoopCategory) => {
-    setSelectedCategories(prev => {
+    setSelectedCategories((prev) => {
       const next = new Set(prev);
       if (next.has(category)) {
         next.delete(category);
@@ -153,14 +159,14 @@ export default function DashboardScreen() {
   }, []);
 
   const toggleSection = useCallback((section: keyof typeof expandedSections) => {
-    setExpandedSections(prev => ({
+    setExpandedSections((prev) => ({
       ...prev,
       [section]: !prev[section],
     }));
   }, []);
 
   const filterLoops = useCallback((loops: Loop[]) => {
-    return loops.filter(loop => {
+    return loops.filter((loop) => {
       const categoryMatch = selectedCategories.size === 0 || selectedCategories.has(loop.category);
       const tagMatch = !selectedTag || (loop.tags && loop.tags.includes(selectedTag));
       return categoryMatch && tagMatch;
@@ -173,8 +179,8 @@ export default function DashboardScreen() {
   const filteredClosedLoops = useMemo(() => filterLoops(closedLoops.slice(0, 10)), [filterLoops, closedLoops]);
   const filteredArchivedLoops = useMemo(() => filterLoops(archivedLoops.slice(0, 10)), [filterLoops, archivedLoops]);
 
-  const regularLoops = useMemo(() => 
-    filteredOpenLoops.filter(l => !l.isQuickWin && !l.isPinned),
+  const regularLoops = useMemo(
+    () => filteredOpenLoops.filter((l) => !l.isQuickWin && !l.isPinned),
     [filteredOpenLoops]
   );
 
@@ -183,37 +189,45 @@ export default function DashboardScreen() {
   return (
     <GradientBackground loopCount={openLoops.length}>
       <View style={[styles.container, { paddingTop: insets.top }]}>
+        {/* Header - Contemplative greeting */}
         <View style={styles.header}>
           <View style={styles.headerTop}>
-            <View>
-              <Text style={[styles.greeting, { color: colors.text }]}>Your Mind</Text>
+            <View style={styles.headerTextContainer}>
+              <Text style={[styles.greeting, { color: colors.text }]}>
+                {openLoops.length === 0 ? 'Stillness' : 'Your Mind'}
+              </Text>
               <Text style={[styles.clarityMessage, { color: colors.textSecondary }]}>
                 {getClarityMessage(openLoops.length)}
               </Text>
             </View>
             <StreakBadge count={streak.currentCount} size="small" />
           </View>
-          
+
+          {/* Stats - Understated, informative */}
           <View style={[styles.statsRow, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
             <View style={styles.statItem}>
-              <View style={styles.statCircle}>
-                <Circle size={20} color={colors.primary} fill={colors.primary} />
+              <View style={styles.statIconRow}>
+                <EnsoIcon size={18} color={colors.primary} variant="open" />
                 <Text style={[styles.statNumber, { color: colors.text }]}>{openLoops.length}</Text>
               </View>
-              <Text style={[styles.statLabel, { color: colors.textTertiary }]}>Open Loops</Text>
+              <Text style={[styles.statLabel, { color: colors.textTertiary }]}>open</Text>
             </View>
+
             <View style={[styles.statDivider, { backgroundColor: colors.cardBorder }]} />
+
             <View style={styles.statItem}>
-              <View style={styles.statCircle}>
-                <Sparkles size={20} color={colors.warning} />
+              <View style={styles.statIconRow}>
+                <Leaf size={16} color={colors.warning} />
                 <Text style={[styles.statNumber, { color: colors.text }]}>{quickWins.length}</Text>
               </View>
-              <Text style={[styles.statLabel, { color: colors.textTertiary }]}>Quick Wins</Text>
+              <Text style={[styles.statLabel, { color: colors.textTertiary }]}>quick wins</Text>
             </View>
+
             <View style={[styles.statDivider, { backgroundColor: colors.cardBorder }]} />
+
             <View style={styles.statItem}>
-              <Text style={[styles.totalClosed, { color: colors.success }]}>{streak.totalLoopsClosed}</Text>
-              <Text style={[styles.statLabel, { color: colors.textTertiary }]}>Total Closed</Text>
+              <Text style={[styles.statNumber, { color: colors.success }]}>{streak.totalLoopsClosed}</Text>
+              <Text style={[styles.statLabel, { color: colors.textTertiary }]}>closed</Text>
             </View>
           </View>
         </View>
@@ -239,19 +253,18 @@ export default function DashboardScreen() {
             />
           }
         >
+          {/* Pinned loops */}
           {filteredPinnedLoops.length > 0 && (
             <CollapsibleSection
-              title="Pinned"
+              title="pinned"
               count={filteredPinnedLoops.length}
               isExpanded={expandedSections.pinned}
               onToggle={() => toggleSection('pinned')}
-              accentColor={colors.primary}
-              icon={<Pin size={14} color={colors.primary} fill={colors.primary} />}
             >
-              {filteredPinnedLoops.map(loop => (
-                <LoopCard 
-                  key={loop.id} 
-                  loop={loop} 
+              {filteredPinnedLoops.map((loop) => (
+                <LoopCard
+                  key={loop.id}
+                  loop={loop}
                   onComplete={handleComplete}
                   onPress={handleLoopPress}
                   onTagPress={handleTagPress}
@@ -260,19 +273,19 @@ export default function DashboardScreen() {
             </CollapsibleSection>
           )}
 
+          {/* Quick wins */}
           {filteredQuickWins.length > 0 && (
             <CollapsibleSection
-              title="Quick Wins"
+              title="quick wins"
               count={filteredQuickWins.length}
               isExpanded={expandedSections.quickWins}
               onToggle={() => toggleSection('quickWins')}
-              accentColor={colors.warning}
-              icon={<Sparkles size={14} color={colors.warning} />}
+              icon={<Leaf size={14} color={colors.warning} />}
             >
-              {filteredQuickWins.slice(0, 5).map(loop => (
-                <LoopCard 
-                  key={loop.id} 
-                  loop={loop} 
+              {filteredQuickWins.slice(0, 5).map((loop) => (
+                <LoopCard
+                  key={loop.id}
+                  loop={loop}
                   onComplete={handleComplete}
                   onPress={handleLoopPress}
                   onTagPress={handleTagPress}
@@ -281,19 +294,19 @@ export default function DashboardScreen() {
             </CollapsibleSection>
           )}
 
+          {/* Active loops */}
           {regularLoops.length > 0 && (
             <CollapsibleSection
-              title="Active Loops"
+              title="active"
               count={regularLoops.length}
               isExpanded={expandedSections.active}
               onToggle={() => toggleSection('active')}
-              accentColor={colors.primary}
-              icon={<Circle size={14} color={colors.primary} />}
+              icon={<EnsoIcon size={14} color={colors.textSecondary} variant="open" />}
             >
-              {regularLoops.map(loop => (
-                <LoopCard 
-                  key={loop.id} 
-                  loop={loop} 
+              {regularLoops.map((loop) => (
+                <LoopCard
+                  key={loop.id}
+                  loop={loop}
                   onComplete={handleComplete}
                   onPress={handleLoopPress}
                   onTagPress={handleTagPress}
@@ -302,19 +315,19 @@ export default function DashboardScreen() {
             </CollapsibleSection>
           )}
 
+          {/* Closed loops */}
           {filteredClosedLoops.length > 0 && (
             <CollapsibleSection
-              title="Closed"
+              title="closed"
               count={closedLoops.length}
               isExpanded={expandedSections.closed}
               onToggle={() => toggleSection('closed')}
-              accentColor={colors.success}
-              icon={<CheckCircle size={14} color={colors.success} />}
+              icon={<Check size={14} color={colors.success} />}
             >
-              {filteredClosedLoops.map(loop => (
-                <LoopCard 
-                  key={loop.id} 
-                  loop={loop} 
+              {filteredClosedLoops.map((loop) => (
+                <LoopCard
+                  key={loop.id}
+                  loop={loop}
                   onComplete={handleComplete}
                   onPress={handleLoopPress}
                   onTagPress={handleTagPress}
@@ -323,19 +336,19 @@ export default function DashboardScreen() {
             </CollapsibleSection>
           )}
 
+          {/* Archived loops */}
           {filteredArchivedLoops.length > 0 && (
             <CollapsibleSection
-              title="Archived"
+              title="archived"
               count={archivedLoops.length}
               isExpanded={expandedSections.archived}
               onToggle={() => toggleSection('archived')}
-              accentColor={colors.textTertiary}
               icon={<Archive size={14} color={colors.textTertiary} />}
             >
-              {filteredArchivedLoops.map(loop => (
-                <LoopCard 
-                  key={loop.id} 
-                  loop={loop} 
+              {filteredArchivedLoops.map((loop) => (
+                <LoopCard
+                  key={loop.id}
+                  loop={loop}
                   onComplete={handleComplete}
                   onPress={handleLoopPress}
                   onTagPress={handleTagPress}
@@ -344,31 +357,32 @@ export default function DashboardScreen() {
             </CollapsibleSection>
           )}
 
+          {/* Empty state - Clarity achieved */}
           {openLoops.length === 0 && !isLoading && !hasActiveFilters && (
             <View style={styles.emptyState}>
               <View style={[styles.emptyIcon, { backgroundColor: colors.primaryDim }]}>
-                <Sparkles size={48} color={colors.primary} />
+                <EnsoIcon size={64} color={colors.primary} variant="closed" strokeWidth={4} />
               </View>
-              <Text style={[styles.emptyTitle, { color: colors.text }]}>Mind Clear</Text>
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>Stillness</Text>
               <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-                No open loops. Your mind is at peace.{'\n'}
-                Dump your thoughts to capture new loops.
+                No open loops. Your mind is clear.{'\n'}
+                When thoughts arise, capture them.
               </Text>
               <TouchableOpacity
-                style={[styles.emptyButton, { backgroundColor: colors.primary }]}
+                style={[styles.emptyButton, { borderColor: colors.primary }]}
                 onPress={() => router.push('/dump')}
                 activeOpacity={0.8}
               >
-                <Text style={[styles.emptyButtonText, { color: colors.background }]}>Start Brain Dump</Text>
+                <Text style={[styles.emptyButtonText, { color: colors.primary }]}>Begin</Text>
               </TouchableOpacity>
-              
-              <Animated.View 
+
+              <Animated.View
                 style={[
                   styles.clarityQuoteContainer,
-                  { opacity: clarityQuoteAnim }
+                  { opacity: clarityQuoteAnim },
                 ]}
               >
-                <Text style={[styles.clarityQuoteText, { color: colors.clarityAccent }]}>
+                <Text style={[styles.clarityQuoteText, { color: colors.textSecondary }]}>
                   {`"${clarityQuote.text}"`}
                 </Text>
                 <Text style={[styles.clarityQuoteAuthor, { color: colors.textTertiary }]}>
@@ -378,9 +392,12 @@ export default function DashboardScreen() {
             </View>
           )}
 
+          {/* No results for filter */}
           {hasActiveFilters && filteredOpenLoops.length === 0 && (
             <View style={styles.noResultsContainer}>
-              <Text style={[styles.noResultsText, { color: colors.textSecondary }]}>No loops match your filters</Text>
+              <Text style={[styles.noResultsText, { color: colors.textSecondary }]}>
+                No loops match your filters
+              </Text>
               <TouchableOpacity
                 style={styles.clearFiltersButton}
                 onPress={() => {
@@ -389,43 +406,47 @@ export default function DashboardScreen() {
                 }}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.clearFiltersText, { color: colors.primary }]}>Clear all filters</Text>
+                <Text style={[styles.clearFiltersText, { color: colors.primary }]}>Clear</Text>
               </TouchableOpacity>
             </View>
           )}
-          
+
+          {/* Daily thought - subtle wisdom */}
           {openLoops.length > 0 && (
-            <View style={[styles.actionQuoteContainer, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-              <Text style={[styles.actionQuoteLabel, { color: colors.actionAccent }]}>Daily Thought</Text>
+            <View style={[styles.actionQuoteContainer, { borderColor: colors.cardBorder }]}>
               <Text style={[styles.actionQuoteText, { color: colors.textSecondary }]}>
                 {`"${actionQuote.text}"`}
               </Text>
-              <Text style={[styles.actionQuoteAuthor, { color: colors.actionAccent }]}>
+              <Text style={[styles.actionQuoteAuthor, { color: colors.textTertiary }]}>
                 — {actionQuote.author}
               </Text>
             </View>
           )}
-          
+
           <View style={{ height: 100 }} />
         </ScrollView>
 
+        {/* Celebration overlay - Subtle acknowledgment */}
         {showCelebration && (
-          <Animated.View 
+          <Animated.View
             style={[
               styles.celebration,
               {
                 backgroundColor: colors.success,
                 opacity: celebrationAnim,
-                transform: [{
-                  scale: celebrationAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0.8, 1],
-                  })
-                }]
-              }
+                transform: [
+                  {
+                    scale: celebrationAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.9, 1],
+                    }),
+                  },
+                ],
+              },
             ]}
           >
-            <Text style={[styles.celebrationText, { color: colors.text }]}>✨ Loop Closed!</Text>
+            <EnsoIcon size={24} color="#fff" variant="closed" strokeWidth={2.5} />
+            <Text style={styles.celebrationText}>Closed</Text>
           </Animated.View>
         )}
       </View>
@@ -438,28 +459,33 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 12,
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 16,
   },
   headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 24,
+    marginBottom: 28,
+  },
+  headerTextContainer: {
+    flex: 1,
   },
   greeting: {
-    fontSize: 32,
-    fontWeight: '700' as const,
+    fontSize: 28,
+    fontWeight: '300',
     letterSpacing: -0.5,
   },
   clarityMessage: {
     fontSize: 15,
-    marginTop: 4,
+    marginTop: 6,
+    fontWeight: '400',
+    fontStyle: 'italic',
   },
   statsRow: {
     flexDirection: 'row',
-    borderRadius: 16,
+    borderRadius: 12,
     padding: 16,
     borderWidth: 1,
   },
@@ -467,126 +493,121 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
   },
-  statCircle: {
+  statIconRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
   statNumber: {
-    fontSize: 24,
-    fontWeight: '700' as const,
-  },
-  totalClosed: {
-    fontSize: 24,
-    fontWeight: '700' as const,
+    fontSize: 20,
+    fontWeight: '500',
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 11,
     marginTop: 4,
+    textTransform: 'lowercase',
   },
   statDivider: {
     width: 1,
-    marginHorizontal: 12,
+    marginHorizontal: 16,
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    paddingTop: 8,
+    paddingTop: 12,
   },
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 40,
-    paddingTop: 60,
+    paddingHorizontal: 48,
+    paddingTop: 80,
   },
   emptyIcon: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 24,
+    marginBottom: 32,
   },
   emptyTitle: {
     fontSize: 24,
-    fontWeight: '700' as const,
-    marginBottom: 8,
+    fontWeight: '300',
+    marginBottom: 12,
+    letterSpacing: -0.5,
   },
   emptyText: {
     fontSize: 15,
     textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 24,
+    lineHeight: 24,
+    marginBottom: 32,
   },
   emptyButton: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 32,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: 24,
+    borderWidth: 1.5,
   },
   emptyButtonText: {
-    fontSize: 16,
-    fontWeight: '600' as const,
+    fontSize: 15,
+    fontWeight: '500',
+    letterSpacing: 0.5,
   },
   celebration: {
     position: 'absolute',
     top: '40%',
     alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
     paddingHorizontal: 24,
-    paddingVertical: 16,
-    borderRadius: 16,
+    paddingVertical: 14,
+    borderRadius: 24,
   },
   celebrationText: {
-    fontSize: 18,
-    fontWeight: '700' as const,
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#fff',
   },
   clarityQuoteContainer: {
-    marginTop: 40,
-    paddingHorizontal: 20,
+    marginTop: 48,
+    paddingHorizontal: 24,
     alignItems: 'center',
   },
   clarityQuoteText: {
     fontSize: 14,
-    fontStyle: 'italic' as const,
+    fontStyle: 'italic',
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 24,
   },
   clarityQuoteAuthor: {
     fontSize: 12,
-    marginTop: 8,
+    marginTop: 12,
   },
   actionQuoteContainer: {
-    marginTop: 24,
-    marginHorizontal: 20,
+    marginTop: 32,
+    marginHorizontal: 24,
     paddingVertical: 20,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  actionQuoteLabel: {
-    fontSize: 10,
-    fontWeight: '600' as const,
-    textTransform: 'uppercase' as const,
-    letterSpacing: 1,
-    marginBottom: 8,
+    paddingHorizontal: 20,
+    borderTopWidth: 1,
   },
   actionQuoteText: {
     fontSize: 14,
-    fontStyle: 'italic' as const,
-    lineHeight: 22,
+    fontStyle: 'italic',
+    lineHeight: 24,
   },
   actionQuoteAuthor: {
     fontSize: 12,
-    marginTop: 10,
-    fontWeight: '500' as const,
+    marginTop: 12,
   },
   noResultsContainer: {
     alignItems: 'center',
-    paddingVertical: 40,
-    paddingHorizontal: 20,
+    paddingVertical: 48,
+    paddingHorizontal: 24,
   },
   noResultsText: {
-    fontSize: 16,
+    fontSize: 15,
     marginBottom: 12,
   },
   clearFiltersButton: {
@@ -595,6 +616,6 @@ const styles = StyleSheet.create({
   },
   clearFiltersText: {
     fontSize: 14,
-    fontWeight: '500' as const,
+    fontWeight: '500',
   },
 });

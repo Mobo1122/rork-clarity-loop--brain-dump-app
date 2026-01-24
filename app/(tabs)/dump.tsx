@@ -1,9 +1,9 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TextInput, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
@@ -12,78 +12,85 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Sparkles, Send, Brain, Trash2 } from 'lucide-react-native';
+import { Feather, X } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useLoops } from '@/context/LoopsContext';
 import { usePro } from '@/context/ProContext';
 import { useTheme } from '@/context/ThemeContext';
+import EnsoIcon from '@/components/EnsoIcon';
 
 const MAX_CHARS = 5000;
-const PLACEHOLDER = `What is cluttering your mind?
+const PLACEHOLDER = `What weighs on your mind?
 
-Just dump everything here...
-- Things you need to do
-- Calls to make
-- Ideas floating around
-- Worries or concerns
-- Projects to start
+Let it flow freely...
+- Tasks waiting for attention
+- Ideas circling your thoughts
+- Concerns seeking resolution
+- Projects yet to begin
 
-Don't organize. Just dump.`;
+Don't organize. Simply release.`;
 
+/**
+ * Brain Dump Screen - The Release
+ *
+ * A meditative space for releasing mental clutter.
+ * Like water flowing, thoughts should move freely
+ * from mind to page without judgment or structure.
+ */
 export default function BrainDumpScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { processBrainDump } = useLoops();
   const { canExtract, extractionsRemaining, recordExtraction, triggerPaywall, isPro } = usePro();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const [content, setContent] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [extractedCount, setExtractedCount] = useState<number | null>(null);
-  
-  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  const breatheAnim = useRef(new Animated.Value(1)).current;
   const successAnim = useRef(new Animated.Value(0)).current;
 
   const handleExtract = useCallback(async () => {
     if (content.trim().length < 10) return;
-    
+
     if (!canExtract) {
       triggerPaywall('limit');
       return;
     }
-    
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setIsProcessing(true);
-    
+
+    // Gentle breathing animation while processing
     Animated.loop(
       Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.05,
-          duration: 600,
+        Animated.timing(breatheAnim, {
+          toValue: 1.02,
+          duration: 1000,
           useNativeDriver: true,
         }),
-        Animated.timing(pulseAnim, {
+        Animated.timing(breatheAnim, {
           toValue: 1,
-          duration: 600,
+          duration: 1000,
           useNativeDriver: true,
         }),
       ])
     ).start();
 
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
+    await new Promise((resolve) => setTimeout(resolve, 1800));
+
     const loops = processBrainDump(content);
     recordExtraction();
     setExtractedCount(loops.length);
     setIsProcessing(false);
-    pulseAnim.stopAnimation();
-    pulseAnim.setValue(1);
-    
+    breatheAnim.stopAnimation();
+    breatheAnim.setValue(1);
+
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    
+
     Animated.timing(successAnim, {
       toValue: 1,
-      duration: 300,
+      duration: 400,
       useNativeDriver: true,
     }).start();
 
@@ -92,8 +99,8 @@ export default function BrainDumpScreen() {
       setExtractedCount(null);
       successAnim.setValue(0);
       router.push('/');
-    }, 1500);
-  }, [content, processBrainDump, pulseAnim, successAnim, router, canExtract, triggerPaywall, recordExtraction]);
+    }, 2000);
+  }, [content, processBrainDump, breatheAnim, successAnim, router, canExtract, triggerPaywall, recordExtraction]);
 
   const handleClear = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -105,42 +112,35 @@ export default function BrainDumpScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <LinearGradient
-        colors={isDark ? ['#2A1810', '#0A0A0F'] : ['#FEF3C7', '#F8F9FA']}
-        style={StyleSheet.absoluteFillObject}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      />
-      
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
-        <ScrollView 
+        <ScrollView
           contentContainerStyle={[
             styles.scrollContent,
-            { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 100 }
+            { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 100 },
           ]}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
+          {/* Header - Contemplative invitation */}
           <View style={styles.header}>
             <View style={[styles.iconContainer, { backgroundColor: colors.primaryDim }]}>
-              <Brain size={32} color={colors.primary} />
+              <EnsoIcon size={36} color={colors.primary} variant="open" strokeWidth={3} />
             </View>
-            <Text style={[styles.title, { color: colors.text }]}>Brain Dump</Text>
+            <Text style={[styles.title, { color: colors.text }]}>Release</Text>
             <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-              Empty your mind. We&apos;ll extract the loops.
+              Let your thoughts flow freely
             </Text>
             {!isPro && (
-              <View style={[styles.limitBadge, { backgroundColor: isDark ? 'rgba(245, 158, 11, 0.1)' : 'rgba(217, 119, 6, 0.1)' }]}>
-                <Sparkles size={14} color={colors.warning} />
-                <Text style={[styles.limitText, { color: colors.warning }]}>
-                  {extractionsRemaining} free extraction{extractionsRemaining !== 1 ? 's' : ''} left today
-                </Text>
-              </View>
+              <Text style={[styles.limitText, { color: colors.textTertiary }]}>
+                {extractionsRemaining} {extractionsRemaining === 1 ? 'release' : 'releases'} remaining today
+              </Text>
             )}
           </View>
 
+          {/* Input area - Clean, spacious */}
           <View style={[styles.inputContainer, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
             <TextInput
               style={[styles.textInput, { color: colors.text }]}
@@ -153,72 +153,97 @@ export default function BrainDumpScreen() {
               textAlignVertical="top"
               autoFocus={false}
             />
-            
+
+            {/* Footer - Minimal, functional */}
             <View style={[styles.inputFooter, { borderTopColor: colors.cardBorder }]}>
-              <Text style={[
-                styles.charCount,
-                { color: colors.textTertiary },
-                charCount > MAX_CHARS * 0.9 && { color: colors.warning }
-              ]}>
-                {charCount} / {MAX_CHARS}
+              <Text
+                style={[
+                  styles.charCount,
+                  { color: colors.textTertiary },
+                  charCount > MAX_CHARS * 0.9 && { color: colors.warning },
+                ]}
+              >
+                {charCount.toLocaleString()}
               </Text>
-              
+
               {content.length > 0 && (
-                <TouchableOpacity onPress={handleClear} style={styles.clearButton}>
-                  <Trash2 size={18} color={colors.textTertiary} />
+                <TouchableOpacity
+                  onPress={handleClear}
+                  style={styles.clearButton}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <X size={16} color={colors.textTertiary} />
                 </TouchableOpacity>
               )}
             </View>
           </View>
 
-          <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+          {/* Extract button - Understated elegance */}
+          <Animated.View style={{ transform: [{ scale: breatheAnim }] }}>
             <TouchableOpacity
               style={[
                 styles.extractButton,
-                { backgroundColor: colors.primary },
-                !canSubmit && styles.extractButtonDisabled
+                { borderColor: colors.primary },
+                canSubmit && { backgroundColor: colors.primary },
+                !canSubmit && { opacity: 0.4 },
               ]}
               onPress={handleExtract}
               disabled={!canSubmit}
               activeOpacity={0.8}
             >
               {isProcessing ? (
-                <>
-                  <Sparkles size={22} color={isDark ? '#0A0A0F' : '#FFFFFF'} />
-                  <Text style={[styles.extractButtonText, { color: isDark ? '#0A0A0F' : '#FFFFFF' }]}>Extracting loops...</Text>
-                </>
+                <View style={styles.buttonContent}>
+                  <EnsoIcon size={20} color={canSubmit ? colors.background : colors.primary} variant="incomplete" />
+                  <Text
+                    style={[
+                      styles.extractButtonText,
+                      { color: canSubmit ? colors.background : colors.primary },
+                    ]}
+                  >
+                    Releasing...
+                  </Text>
+                </View>
               ) : (
-                <>
-                  <Send size={22} color={isDark ? '#0A0A0F' : '#FFFFFF'} />
-                  <Text style={[styles.extractButtonText, { color: isDark ? '#0A0A0F' : '#FFFFFF' }]}>Extract Loops</Text>
-                </>
+                <View style={styles.buttonContent}>
+                  <Feather size={18} color={canSubmit ? colors.background : colors.primary} />
+                  <Text
+                    style={[
+                      styles.extractButtonText,
+                      { color: canSubmit ? colors.background : colors.primary },
+                    ]}
+                  >
+                    Release
+                  </Text>
+                </View>
               )}
             </TouchableOpacity>
           </Animated.View>
 
-          <View style={[styles.tips, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-            <Text style={[styles.tipsTitle, { color: colors.textSecondary }]}>Tips for better extraction:</Text>
-            <Text style={[styles.tipItem, { color: colors.textTertiary }]}>• Write freely, do not worry about structure</Text>
-            <Text style={[styles.tipItem, { color: colors.textTertiary }]}>• Separate thoughts with new lines or periods</Text>
-            <Text style={[styles.tipItem, { color: colors.textTertiary }]}>• Include action words: call, email, check, buy</Text>
+          {/* Guidance - Subtle, helpful */}
+          <View style={styles.guidance}>
+            <Text style={[styles.guidanceText, { color: colors.textTertiary }]}>
+              Write freely. Separate thoughts with periods or new lines.
+            </Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
 
+      {/* Success overlay - Contemplative acknowledgment */}
       {extractedCount !== null && (
-        <Animated.View 
+        <Animated.View
           style={[
             styles.successOverlay,
-            { opacity: successAnim, backgroundColor: isDark ? 'rgba(10, 10, 15, 0.95)' : 'rgba(255, 255, 255, 0.95)' }
+            {
+              opacity: successAnim,
+              backgroundColor: colors.background,
+            },
           ]}
         >
           <View style={styles.successContent}>
-            <Sparkles size={48} color={colors.success} />
-            <Text style={[styles.successTitle, { color: colors.success }]}>
-              {extractedCount} Loops Extracted!
-            </Text>
-            <Text style={[styles.successSubtitle, { color: colors.textSecondary }]}>
-              Redirecting to dashboard...
+            <EnsoIcon size={72} color={colors.primary} variant="closed" strokeWidth={4} />
+            <Text style={[styles.successNumber, { color: colors.text }]}>{extractedCount}</Text>
+            <Text style={[styles.successLabel, { color: colors.textSecondary }]}>
+              {extractedCount === 1 ? 'loop released' : 'loops released'}
             </Text>
           </View>
         </Animated.View>
@@ -235,41 +260,47 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 32,
   },
   iconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   title: {
-    fontSize: 28,
-    fontWeight: '700' as const,
+    fontSize: 26,
+    fontWeight: '300',
+    letterSpacing: -0.5,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 15,
     textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  limitText: {
+    fontSize: 13,
+    marginTop: 16,
   },
   inputContainer: {
-    borderRadius: 20,
+    borderRadius: 16,
     borderWidth: 1,
-    marginBottom: 20,
+    marginBottom: 24,
     overflow: 'hidden',
   },
   textInput: {
-    minHeight: 250,
-    maxHeight: 350,
+    minHeight: 280,
+    maxHeight: 380,
     padding: 20,
     fontSize: 16,
-    lineHeight: 24,
+    lineHeight: 26,
   },
   inputFooter: {
     flexDirection: 'row',
@@ -280,40 +311,37 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
   },
   charCount: {
-    fontSize: 13,
+    fontSize: 12,
   },
   clearButton: {
-    padding: 8,
+    padding: 6,
   },
   extractButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
-    paddingVertical: 18,
-    borderRadius: 16,
+    paddingVertical: 16,
+    borderRadius: 24,
     marginBottom: 24,
+    borderWidth: 1.5,
   },
-  extractButtonDisabled: {
-    opacity: 0.5,
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
   extractButtonText: {
-    fontSize: 17,
-    fontWeight: '600' as const,
+    fontSize: 16,
+    fontWeight: '500',
+    letterSpacing: 0.3,
   },
-  tips: {
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
+  guidance: {
+    alignItems: 'center',
+    paddingHorizontal: 20,
   },
-  tipsTitle: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    marginBottom: 12,
-  },
-  tipItem: {
-    fontSize: 14,
-    lineHeight: 22,
+  guidanceText: {
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 20,
   },
   successOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -323,26 +351,14 @@ const styles = StyleSheet.create({
   successContent: {
     alignItems: 'center',
   },
-  successTitle: {
-    fontSize: 24,
-    fontWeight: '700' as const,
-    marginTop: 20,
-    marginBottom: 8,
+  successNumber: {
+    fontSize: 48,
+    fontWeight: '300',
+    marginTop: 24,
+    letterSpacing: -1,
   },
-  successSubtitle: {
-    fontSize: 15,
-  },
-  limitBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    marginTop: 12,
-  },
-  limitText: {
-    fontSize: 13,
-    fontWeight: '500' as const,
+  successLabel: {
+    fontSize: 16,
+    marginTop: 8,
   },
 });

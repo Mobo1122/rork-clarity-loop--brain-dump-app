@@ -1,6 +1,6 @@
 import React, { useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated, LayoutAnimation, Platform, UIManager } from 'react-native';
-import { ChevronRight } from 'lucide-react-native';
+import { ChevronDown } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -17,6 +17,12 @@ interface Props {
   icon?: React.ReactNode;
 }
 
+/**
+ * CollapsibleSection - Zen-styled expandable section
+ *
+ * Minimal visual hierarchy, generous spacing,
+ * understated animations that feel natural.
+ */
 export default function CollapsibleSection({
   title,
   count,
@@ -27,14 +33,17 @@ export default function CollapsibleSection({
   icon,
 }: Props) {
   const { colors } = useTheme();
-  const finalAccentColor = accentColor || colors.primary;
+  const finalAccentColor = accentColor || colors.textSecondary;
   const rotateAnim = useRef(new Animated.Value(isExpanded ? 1 : 0)).current;
 
   const handleToggle = useCallback(() => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    LayoutAnimation.configureNext({
+      duration: 300,
+      update: { type: 'easeInEaseOut' },
+    });
     Animated.timing(rotateAnim, {
       toValue: isExpanded ? 0 : 1,
-      duration: 200,
+      duration: 250,
       useNativeDriver: true,
     }).start();
     onToggle();
@@ -42,7 +51,7 @@ export default function CollapsibleSection({
 
   const rotation = rotateAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: ['0deg', '90deg'],
+    outputRange: ['0deg', '180deg'],
   });
 
   return (
@@ -54,17 +63,16 @@ export default function CollapsibleSection({
         testID={`collapsible-${title}`}
       >
         <View style={styles.headerLeft}>
-          <Animated.View style={{ transform: [{ rotate: rotation }] }}>
-            <ChevronRight size={18} color={colors.textSecondary} />
-          </Animated.View>
           {icon && <View style={styles.iconContainer}>{icon}</View>}
-          <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
-          <View style={[styles.countBadge, { backgroundColor: `${finalAccentColor}20` }]}>
-            <Text style={[styles.countText, { color: finalAccentColor }]}>{count}</Text>
-          </View>
+          <Text style={[styles.title, { color: colors.textSecondary }]}>{title}</Text>
+          <Text style={[styles.count, { color: colors.textTertiary }]}>{count}</Text>
         </View>
+
+        <Animated.View style={{ transform: [{ rotate: rotation }] }}>
+          <ChevronDown size={16} color={colors.textTertiary} />
+        </Animated.View>
       </TouchableOpacity>
-      
+
       {isExpanded && (
         <View style={styles.content}>
           {children}
@@ -76,13 +84,13 @@ export default function CollapsibleSection({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 8,
+    marginBottom: 16,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     paddingVertical: 12,
   },
   headerLeft: {
@@ -91,23 +99,17 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   iconContainer: {
-    marginLeft: 4,
+    opacity: 0.8,
   },
   title: {
-    fontSize: 15,
-    fontWeight: '600' as const,
-    textTransform: 'uppercase' as const,
+    fontSize: 13,
+    fontWeight: '500',
     letterSpacing: 0.5,
+    textTransform: 'lowercase',
   },
-  countBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
-    marginLeft: 4,
-  },
-  countText: {
-    fontSize: 12,
-    fontWeight: '600' as const,
+  count: {
+    fontSize: 13,
+    fontWeight: '400',
   },
   content: {
     marginTop: 4,

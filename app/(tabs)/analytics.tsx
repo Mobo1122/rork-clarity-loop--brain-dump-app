@@ -1,21 +1,22 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { 
-  TrendingUp, 
-  Clock, 
-  Target, 
-  Calendar,
-  Zap,
-  Award,
-} from 'lucide-react-native';
+import { Leaf, Calendar } from 'lucide-react-native';
 import { useLoops } from '@/context/LoopsContext';
 import { useTheme } from '@/context/ThemeContext';
 import GradientBackground from '@/components/GradientBackground';
 import StreakBadge from '@/components/StreakBadge';
+import EnsoIcon from '@/components/EnsoIcon';
 import { LoopCategory } from '@/types';
 import { getCategoryColor } from '@/utils/helpers';
 
+/**
+ * Insights Screen - Reflection
+ *
+ * A contemplative view of one's practice.
+ * Numbers serve as gentle reminders of progress,
+ * not metrics to be optimized.
+ */
 export default function AnalyticsScreen() {
   const insets = useSafeAreaInsets();
   const { loops, openLoops, closedLoops, streak } = useLoops();
@@ -26,39 +27,42 @@ export default function AnalyticsScreen() {
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-    const thisWeekClosed = closedLoops.filter(l => 
-      l.closedAt && new Date(l.closedAt) >= weekAgo
+    const thisWeekClosed = closedLoops.filter(
+      (l) => l.closedAt && new Date(l.closedAt) >= weekAgo
     );
-    const thisMonthClosed = closedLoops.filter(l => 
-      l.closedAt && new Date(l.closedAt) >= monthAgo
+    const thisMonthClosed = closedLoops.filter(
+      (l) => l.closedAt && new Date(l.closedAt) >= monthAgo
     );
 
-    const quickWinsClosed = closedLoops.filter(l => l.isQuickWin).length;
+    const quickWinsClosed = closedLoops.filter((l) => l.isQuickWin).length;
 
     const categoryBreakdown: Record<LoopCategory, number> = {
-      work: 0, personal: 0, health: 0, finance: 0, 
-      learning: 0, creative: 0, other: 0
+      work: 0,
+      personal: 0,
+      health: 0,
+      finance: 0,
+      learning: 0,
+      creative: 0,
+      other: 0,
     };
-    closedLoops.forEach(l => {
+    closedLoops.forEach((l) => {
       categoryBreakdown[l.category]++;
     });
 
-    const totalEstimated = closedLoops.reduce((sum, l) => 
-      sum + (l.estimatedMinutes || 30), 0
+    const totalEstimated = closedLoops.reduce(
+      (sum, l) => sum + (l.estimatedMinutes || 30),
+      0
     );
-    const avgTime = closedLoops.length > 0 
-      ? Math.round(totalEstimated / closedLoops.length) 
-      : 0;
+    const avgTime = closedLoops.length > 0 ? Math.round(totalEstimated / closedLoops.length) : 0;
 
     const dayCompletions: Record<string, number> = {};
-    closedLoops.forEach(l => {
+    closedLoops.forEach((l) => {
       if (l.closedAt) {
         const day = new Date(l.closedAt).toLocaleDateString('en-US', { weekday: 'long' });
         dayCompletions[day] = (dayCompletions[day] || 0) + 1;
       }
     });
-    const bestDay = Object.entries(dayCompletions)
-      .sort(([,a], [,b]) => b - a)[0]?.[0] || 'N/A';
+    const bestDay = Object.entries(dayCompletions).sort(([, a], [, b]) => b - a)[0]?.[0] || null;
 
     return {
       thisWeek: thisWeekClosed.length,
@@ -67,9 +71,7 @@ export default function AnalyticsScreen() {
       avgTime,
       categoryBreakdown,
       bestDay,
-      completionRate: loops.length > 0 
-        ? Math.round((closedLoops.length / loops.length) * 100) 
-        : 0,
+      completionRate: loops.length > 0 ? Math.round((closedLoops.length / loops.length) * 100) : 0,
     };
   }, [loops, closedLoops]);
 
@@ -79,119 +81,146 @@ export default function AnalyticsScreen() {
       .sort(([, a], [, b]) => b - a);
   }, [analytics.categoryBreakdown]);
 
+  const maxCategoryCount = useMemo(() => {
+    return Math.max(...Object.values(analytics.categoryBreakdown), 1);
+  }, [analytics.categoryBreakdown]);
+
   return (
     <GradientBackground loopCount={openLoops.length}>
-      <ScrollView 
+      <ScrollView
         style={styles.container}
         contentContainerStyle={[
           styles.content,
-          { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 100 }
+          { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 100 },
         ]}
         showsVerticalScrollIndicator={false}
       >
+        {/* Header */}
         <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.text }]}>Insights</Text>
-          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Your productivity at a glance</Text>
+          <Text style={[styles.title, { color: colors.text }]}>Reflection</Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+            A quiet look at your practice
+          </Text>
         </View>
 
+        {/* Streak - Central focus */}
         <View style={styles.streakSection}>
           <StreakBadge count={streak.currentCount} size="large" />
           {streak.longestCount > streak.currentCount && (
             <Text style={[styles.longestStreak, { color: colors.textTertiary }]}>
-              Longest: {streak.longestCount} days
+              longest: {streak.longestCount}
             </Text>
           )}
         </View>
 
-        <View style={styles.statsGrid}>
-          <View style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-            <View style={[styles.statIcon, { backgroundColor: colors.primaryDim }]}>
-              <TrendingUp size={22} color={colors.primary} />
-            </View>
-            <Text style={[styles.statValue, { color: colors.text }]}>{analytics.thisWeek}</Text>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>This Week</Text>
+        {/* Primary metrics - Clean, minimal */}
+        <View style={styles.metricsRow}>
+          <View style={styles.metric}>
+            <Text style={[styles.metricValue, { color: colors.text }]}>{analytics.thisWeek}</Text>
+            <Text style={[styles.metricLabel, { color: colors.textTertiary }]}>this week</Text>
           </View>
-          
-          <View style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-            <View style={[styles.statIcon, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
-              <Target size={22} color={colors.success} />
-            </View>
-            <Text style={[styles.statValue, { color: colors.text }]}>{analytics.thisMonth}</Text>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>This Month</Text>
+          <View style={[styles.metricDivider, { backgroundColor: colors.cardBorder }]} />
+          <View style={styles.metric}>
+            <Text style={[styles.metricValue, { color: colors.text }]}>{analytics.thisMonth}</Text>
+            <Text style={[styles.metricLabel, { color: colors.textTertiary }]}>this month</Text>
           </View>
-          
-          <View style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-            <View style={[styles.statIcon, { backgroundColor: 'rgba(245, 158, 11, 0.15)' }]}>
-              <Zap size={22} color={colors.warning} />
-            </View>
-            <Text style={[styles.statValue, { color: colors.text }]}>{analytics.quickWinsClosed}</Text>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Quick Wins</Text>
-          </View>
-          
-          <View style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-            <View style={[styles.statIcon, { backgroundColor: 'rgba(139, 92, 246, 0.15)' }]}>
-              <Clock size={22} color="#8B5CF6" />
-            </View>
-            <Text style={[styles.statValue, { color: colors.text }]}>{analytics.avgTime}m</Text>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Avg Time</Text>
+          <View style={[styles.metricDivider, { backgroundColor: colors.cardBorder }]} />
+          <View style={styles.metric}>
+            <Text style={[styles.metricValue, { color: colors.text }]}>{closedLoops.length}</Text>
+            <Text style={[styles.metricLabel, { color: colors.textTertiary }]}>total</Text>
           </View>
         </View>
 
-        <View style={[styles.insightCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-          <View style={styles.insightHeader}>
-            <Calendar size={20} color={colors.primary} />
-            <Text style={[styles.insightTitle, { color: colors.text }]}>Best Day</Text>
-          </View>
-          <Text style={[styles.insightValue, { color: colors.primary }]}>{analytics.bestDay}</Text>
-          <Text style={[styles.insightDescription, { color: colors.textSecondary }]}>
-            You complete the most loops on {analytics.bestDay}s
-          </Text>
-        </View>
-
-        <View style={[styles.insightCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-          <View style={styles.insightHeader}>
-            <Award size={20} color={colors.success} />
-            <Text style={[styles.insightTitle, { color: colors.text }]}>Completion Rate</Text>
-          </View>
-          <View style={styles.progressContainer}>
-            <View style={[styles.progressBar, { backgroundColor: colors.cardBorder }]}>
-              <View 
-                style={[
-                  styles.progressFill, 
-                  { width: `${Math.min(analytics.completionRate, 100)}%`, backgroundColor: colors.success }
-                ]} 
-              />
+        {/* Quick wins and average time */}
+        <View style={[styles.infoCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+          <View style={styles.infoRow}>
+            <View style={styles.infoItem}>
+              <Leaf size={16} color={colors.warning} />
+              <Text style={[styles.infoValue, { color: colors.text }]}>{analytics.quickWinsClosed}</Text>
+              <Text style={[styles.infoLabel, { color: colors.textTertiary }]}>quick wins closed</Text>
             </View>
-            <Text style={[styles.progressText, { color: colors.success }]}>{analytics.completionRate}%</Text>
+            <View style={[styles.infoItemDivider, { backgroundColor: colors.cardBorder }]} />
+            <View style={styles.infoItem}>
+              <EnsoIcon size={16} color={colors.primary} variant="closed" />
+              <Text style={[styles.infoValue, { color: colors.text }]}>{analytics.avgTime}m</Text>
+              <Text style={[styles.infoLabel, { color: colors.textTertiary }]}>average time</Text>
+            </View>
           </View>
         </View>
 
+        {/* Best day */}
+        {analytics.bestDay && (
+          <View style={[styles.insightCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+            <View style={styles.insightRow}>
+              <Calendar size={16} color={colors.textSecondary} />
+              <Text style={[styles.insightText, { color: colors.textSecondary }]}>
+                Most productive on <Text style={{ color: colors.text }}>{analytics.bestDay}s</Text>
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {/* Completion rate - Understated progress */}
+        <View style={[styles.progressCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+          <View style={styles.progressHeader}>
+            <Text style={[styles.progressLabel, { color: colors.textSecondary }]}>completion rate</Text>
+            <Text style={[styles.progressValue, { color: colors.text }]}>{analytics.completionRate}%</Text>
+          </View>
+          <View style={[styles.progressTrack, { backgroundColor: colors.cardBorder }]}>
+            <View
+              style={[
+                styles.progressFill,
+                {
+                  width: `${Math.min(analytics.completionRate, 100)}%`,
+                  backgroundColor: colors.primary,
+                },
+              ]}
+            />
+          </View>
+        </View>
+
+        {/* Category breakdown - Visual bars */}
         {sortedCategories.length > 0 && (
-          <View style={[styles.categorySection, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Category Breakdown</Text>
+          <View style={styles.categorySection}>
+            <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>by category</Text>
             {sortedCategories.map(([category, count]) => (
-              <View key={category} style={[styles.categoryRow, { borderBottomColor: colors.cardBorder }]}>
-                <View style={styles.categoryInfo}>
-                  <View 
-                    style={[
-                      styles.categoryDot, 
-                      { backgroundColor: getCategoryColor(category as LoopCategory) }
-                    ]} 
-                  />
-                  <Text style={[styles.categoryName, { color: colors.text }]}>{category}</Text>
+              <View key={category} style={styles.categoryItem}>
+                <View style={styles.categoryHeader}>
+                  <View style={styles.categoryName}>
+                    <View
+                      style={[
+                        styles.categoryDot,
+                        { backgroundColor: getCategoryColor(category as LoopCategory) },
+                      ]}
+                    />
+                    <Text style={[styles.categoryLabel, { color: colors.text }]}>{category}</Text>
+                  </View>
+                  <Text style={[styles.categoryCount, { color: colors.textTertiary }]}>{count}</Text>
                 </View>
-                <Text style={[styles.categoryCount, { color: colors.textSecondary }]}>{count} loops</Text>
+                <View style={[styles.categoryBar, { backgroundColor: colors.cardBorder }]}>
+                  <View
+                    style={[
+                      styles.categoryBarFill,
+                      {
+                        width: `${(count / maxCategoryCount) * 100}%`,
+                        backgroundColor: getCategoryColor(category as LoopCategory),
+                        opacity: 0.6,
+                      },
+                    ]}
+                  />
+                </View>
               </View>
             ))}
           </View>
         )}
 
+        {/* Empty state */}
         {closedLoops.length === 0 && (
           <View style={styles.emptyState}>
-            <TrendingUp size={48} color={colors.textTertiary} />
-            <Text style={[styles.emptyTitle, { color: colors.text }]}>No data yet</Text>
+            <EnsoIcon size={56} color={colors.textTertiary} variant="open" strokeWidth={3} />
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>Begin your practice</Text>
             <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-              Complete some loops to see your insights
+              Close loops to see your progress reflected here
             </Text>
           </View>
         )}
@@ -205,148 +234,177 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
   },
   header: {
-    marginBottom: 24,
+    marginBottom: 32,
   },
   title: {
-    fontSize: 32,
-    fontWeight: '700' as const,
+    fontSize: 28,
+    fontWeight: '300',
     letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: 15,
-    marginTop: 4,
+    marginTop: 6,
+    fontStyle: 'italic',
   },
   streakSection: {
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 36,
   },
   longestStreak: {
-    fontSize: 14,
-    marginTop: 8,
+    fontSize: 13,
+    marginTop: 10,
   },
-  statsGrid: {
+  metricsRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 20,
-  },
-  statCard: {
-    width: '48%',
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-  },
-  statIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
+    marginBottom: 24,
   },
-  statValue: {
-    fontSize: 28,
-    fontWeight: '700' as const,
+  metric: {
+    flex: 1,
+    alignItems: 'center',
   },
-  statLabel: {
-    fontSize: 13,
+  metricValue: {
+    fontSize: 32,
+    fontWeight: '300',
+    letterSpacing: -1,
+  },
+  metricLabel: {
+    fontSize: 12,
     marginTop: 4,
   },
-  insightCard: {
-    borderRadius: 16,
-    padding: 20,
+  metricDivider: {
+    width: 1,
+    height: 32,
+  },
+  infoCard: {
+    borderRadius: 12,
     borderWidth: 1,
+    padding: 16,
     marginBottom: 12,
   },
-  insightHeader: {
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  infoItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  infoItemDivider: {
+    width: 1,
+    height: 24,
+    marginHorizontal: 16,
+  },
+  infoValue: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  infoLabel: {
+    fontSize: 12,
+  },
+  insightCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 14,
+    marginBottom: 12,
+  },
+  insightRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    marginBottom: 12,
   },
-  insightTitle: {
-    fontSize: 16,
-    fontWeight: '600' as const,
-  },
-  insightValue: {
-    fontSize: 24,
-    fontWeight: '700' as const,
-    marginBottom: 4,
-  },
-  insightDescription: {
+  insightText: {
     fontSize: 14,
   },
-  progressContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+  progressCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 16,
+    marginBottom: 24,
   },
-  progressBar: {
-    flex: 1,
-    height: 8,
-    borderRadius: 4,
+  progressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  progressLabel: {
+    fontSize: 13,
+  },
+  progressValue: {
+    fontSize: 18,
+    fontWeight: '500',
+  },
+  progressTrack: {
+    height: 6,
+    borderRadius: 3,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    borderRadius: 4,
-  },
-  progressText: {
-    fontSize: 18,
-    fontWeight: '700' as const,
-    minWidth: 50,
-    textAlign: 'right',
+    borderRadius: 3,
   },
   categorySection: {
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    marginTop: 8,
+    marginBottom: 20,
   },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600' as const,
+  sectionLabel: {
+    fontSize: 12,
     marginBottom: 16,
+    textTransform: 'lowercase',
   },
-  categoryRow: {
+  categoryItem: {
+    marginBottom: 14,
+  },
+  categoryHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-  },
-  categoryInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  categoryDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    marginBottom: 6,
   },
   categoryName: {
-    fontSize: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  categoryDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  categoryLabel: {
+    fontSize: 14,
     textTransform: 'capitalize',
   },
   categoryCount: {
-    fontSize: 14,
+    fontSize: 13,
+  },
+  categoryBar: {
+    height: 4,
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  categoryBarFill: {
+    height: '100%',
+    borderRadius: 2,
   },
   emptyState: {
     alignItems: 'center',
     paddingVertical: 60,
   },
   emptyTitle: {
-    fontSize: 20,
-    fontWeight: '600' as const,
-    marginTop: 16,
+    fontSize: 18,
+    fontWeight: '400',
+    marginTop: 20,
     marginBottom: 8,
   },
   emptyText: {
-    fontSize: 15,
+    fontSize: 14,
     textAlign: 'center',
   },
 });

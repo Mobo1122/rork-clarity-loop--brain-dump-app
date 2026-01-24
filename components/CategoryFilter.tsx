@@ -14,6 +14,12 @@ interface Props {
   openLoops?: Loop[];
 }
 
+/**
+ * CategoryFilter - Understated filter chips
+ *
+ * Zen aesthetic: filters appear only when relevant,
+ * with subtle color coding that doesn't demand attention.
+ */
 export default function CategoryFilter({
   selectedCategories,
   onToggleCategory,
@@ -27,7 +33,7 @@ export default function CategoryFilter({
 
   const availableCategories = useMemo(() => {
     const categoriesWithLoops = new Set<LoopCategory>();
-    openLoops.forEach(loop => {
+    openLoops.forEach((loop) => {
       categoriesWithLoops.add(loop.category);
     });
     return Array.from(categoriesWithLoops).sort((a, b) => {
@@ -47,30 +53,37 @@ export default function CategoryFilter({
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {availableCategories.map(category => {
+        {availableCategories.map((category) => {
           const isSelected = selectedCategories.has(category);
           const categoryColor = getCategoryColor(category);
-          
+
           return (
             <TouchableOpacity
               key={category}
               style={[
                 styles.chip,
-                { backgroundColor: colors.card, borderColor: colors.cardBorder },
-                isSelected && { backgroundColor: `${categoryColor}30`, borderColor: categoryColor },
+                {
+                  backgroundColor: isSelected ? `${categoryColor}15` : 'transparent',
+                  borderColor: isSelected ? `${categoryColor}40` : colors.cardBorder,
+                },
               ]}
               onPress={() => onToggleCategory(category)}
               activeOpacity={0.7}
               testID={`filter-${category}`}
             >
               <View style={[styles.dot, { backgroundColor: categoryColor }]} />
-              <Text style={[styles.chipText, { color: colors.textSecondary }, isSelected && { color: categoryColor }]}>
-                {CATEGORY_LABELS[category]}
+              <Text
+                style={[
+                  styles.chipText,
+                  { color: isSelected ? categoryColor : colors.textSecondary },
+                ]}
+              >
+                {CATEGORY_LABELS[category].toLowerCase()}
               </Text>
             </TouchableOpacity>
           );
         })}
-        
+
         {hasActiveFilters && (
           <TouchableOpacity
             style={styles.clearButton}
@@ -80,22 +93,21 @@ export default function CategoryFilter({
             }}
             activeOpacity={0.7}
           >
-            <X size={14} color={colors.textSecondary} />
-            <Text style={[styles.clearText, { color: colors.textSecondary }]}>Clear</Text>
+            <X size={12} color={colors.textTertiary} />
           </TouchableOpacity>
         )}
       </ScrollView>
-      
+
       {selectedTag && (
         <View style={styles.tagFilterContainer}>
-          <Text style={[styles.tagFilterLabel, { color: colors.textTertiary }]}>Filtered by tag:</Text>
+          <Text style={[styles.tagFilterLabel, { color: colors.textTertiary }]}>tag:</Text>
           <TouchableOpacity
             style={[styles.activeTagChip, { backgroundColor: colors.primaryDim }]}
             onPress={onClearTag}
             activeOpacity={0.7}
           >
             <Text style={[styles.activeTagText, { color: colors.primary }]}>#{selectedTag}</Text>
-            <X size={12} color={colors.primary} />
+            <X size={10} color={colors.primary} />
           </TouchableOpacity>
         </View>
       )}
@@ -108,7 +120,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   scrollContent: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     gap: 8,
   },
   chip: {
@@ -121,29 +133,25 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
   },
   chipText: {
     fontSize: 13,
-    fontWeight: '500' as const,
+    fontWeight: '400',
   },
   clearButton: {
-    flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
+    justifyContent: 'center',
+    paddingHorizontal: 10,
     paddingVertical: 6,
-    gap: 4,
-  },
-  clearText: {
-    fontSize: 13,
   },
   tagFilterContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 8,
+    paddingHorizontal: 24,
+    paddingTop: 10,
     gap: 8,
   },
   tagFilterLabel: {
@@ -159,6 +167,6 @@ const styles = StyleSheet.create({
   },
   activeTagText: {
     fontSize: 12,
-    fontWeight: '500' as const,
+    fontWeight: '400',
   },
 });

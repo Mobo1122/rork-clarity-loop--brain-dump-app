@@ -13,11 +13,11 @@ export function getClarityLevel(openLoopCount: number): 'pristine' | 'clear' | '
 }
 
 export function getClarityMessage(openLoopCount: number): string {
-  if (openLoopCount === 0) return 'Perfect clarity. Mind at peace.';
-  if (openLoopCount <= 2) return 'Almost clear. Just a few things to close.';
-  if (openLoopCount <= 5) return 'Some open loops. You\'ve got this.';
-  if (openLoopCount <= 8) return 'Building up. Time to close some loops.';
-  return 'Mind is cluttered. Let\'s find some quick wins.';
+  if (openLoopCount === 0) return 'Still water reflects the sky';
+  if (openLoopCount <= 2) return 'Nearly still. A few ripples remain';
+  if (openLoopCount <= 5) return 'Gentle waves. One stone at a time';
+  if (openLoopCount <= 8) return 'The waters stir. Seek the small victories';
+  return 'Many stones in the pond. Begin with one';
 }
 
 export function formatDate(dateString: string): string {
@@ -98,14 +98,15 @@ export function getCategoryIcon(category: LoopCategory): string {
 }
 
 export function getCategoryColor(category: LoopCategory): string {
+  // Muted, zen-inspired category colors
   const colors: Record<LoopCategory, string> = {
-    work: '#6366F1',
-    personal: '#EC4899',
-    health: '#10B981',
-    finance: '#F59E0B',
-    learning: '#8B5CF6',
-    creative: '#F97316',
-    other: '#6B7280',
+    work: '#7A8B8C',     // Stone blue-gray
+    personal: '#B08B7A', // Warm clay
+    health: '#6B8E73',   // Sage green
+    finance: '#A69575',  // Warm bronze
+    learning: '#8B7A8C', // Muted plum
+    creative: '#C4A070', // Terracotta
+    other: '#9C978D',    // Warm gray
   };
   return colors[category];
 }

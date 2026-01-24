@@ -1,10 +1,11 @@
 import React, { useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
-import { Check, Clock, Zap, Pin, AlertCircle } from 'lucide-react-native';
+import { Clock, Leaf } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { Loop } from '@/types';
 import { getCategoryColor, formatFriendlyDate } from '@/utils/helpers';
 import { useTheme } from '@/context/ThemeContext';
+import EnsoIcon from './EnsoIcon';
 
 interface Props {
   loop: Loop;
@@ -13,55 +14,59 @@ interface Props {
   onTagPress?: (tag: string) => void;
 }
 
+/**
+ * LoopCard - A contemplative task card
+ *
+ * Designed with wabi-sabi principles:
+ * - Generous breathing room (ma)
+ * - Understated visual hierarchy
+ * - Soft, organic completion gesture
+ * - Minimal visual noise
+ */
 export default function LoopCard({ loop, onComplete, onPress, onTagPress }: Props) {
   const { colors } = useTheme();
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const opacityAnim = useRef(new Animated.Value(1)).current;
-  const checkScaleAnim = useRef(new Animated.Value(1)).current;
+  const completeAnim = useRef(new Animated.Value(0)).current;
 
   const handleComplete = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    // Gentle, breathing completion animation
     Animated.parallel([
-      Animated.timing(checkScaleAnim, {
-        toValue: 1.3,
-        duration: 150,
-        useNativeDriver: true,
-      }),
+      // Subtle pulse
       Animated.sequence([
-        Animated.timing(scaleAnim, {
-          toValue: 1.02,
-          duration: 100,
-          useNativeDriver: true,
-        }),
-        Animated.timing(scaleAnim, {
-          toValue: 0.95,
-          duration: 200,
+        Animated.spring(completeAnim, {
+          toValue: 1,
+          tension: 100,
+          friction: 8,
           useNativeDriver: true,
         }),
       ]),
-      Animated.timing(opacityAnim, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: true,
-      }),
+      // Graceful fade out
+      Animated.sequence([
+        Animated.delay(200),
+        Animated.timing(opacityAnim, {
+          toValue: 0,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+      ]),
+      // Gentle shrink
+      Animated.sequence([
+        Animated.delay(300),
+        Animated.timing(scaleAnim, {
+          toValue: 0.96,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]),
     ]).start(() => {
       onComplete(loop.id);
     });
-  }, [loop.id, onComplete, checkScaleAnim, scaleAnim, opacityAnim]);
+  }, [loop.id, onComplete, completeAnim, opacityAnim, scaleAnim]);
 
   const categoryColor = getCategoryColor(loop.category);
-  const difficultyColor = loop.difficulty === 'easy' 
-    ? colors.difficultyEasy 
-    : loop.difficulty === 'hard' 
-      ? colors.difficultyHard 
-      : colors.difficultyMedium;
-
-  const priorityColor = loop.priority === 'urgent' 
-    ? colors.error 
-    : loop.priority === 'high' 
-      ? colors.warning 
-      : undefined;
 
   const isClosingSoon = loop.windowEndDate && (() => {
     const endDate = new Date(loop.windowEndDate);
@@ -71,8 +76,11 @@ export default function LoopCard({ loop, onComplete, onPress, onTagPress }: Prop
   })();
 
   const tags = loop.tags || [];
-  const displayTags = tags.slice(0, 3);
-  const remainingTags = tags.length - 3;
+  const displayTags = tags.slice(0, 2);
+  const remainingTags = tags.length - 2;
+
+  // Subtle priority indicator through border
+  const hasPriority = loop.priority === 'urgent' || loop.priority === 'high';
 
   return (
     <Animated.View
@@ -86,97 +94,123 @@ export default function LoopCard({ loop, onComplete, onPress, onTagPress }: Prop
     >
       <TouchableOpacity
         style={[
-          styles.content,
+          styles.card,
           {
             backgroundColor: colors.card,
-            borderColor: colors.cardBorder,
+            borderColor: hasPriority ? colors.warning : colors.cardBorder,
+            borderWidth: hasPriority ? 1.5 : 1,
           },
-          priorityColor && { borderLeftWidth: 3, borderLeftColor: priorityColor },
         ]}
         onPress={() => onPress?.(loop)}
-        activeOpacity={0.7}
+        activeOpacity={0.8}
         testID={`loop-card-${loop.id}`}
       >
-        <View style={styles.leftSection}>
-          <TouchableOpacity
-            style={styles.checkButton}
-            onPress={handleComplete}
-            activeOpacity={0.7}
-            testID={`complete-${loop.id}`}
+        {/* Left: Enso completion button */}
+        <TouchableOpacity
+          style={styles.completeButton}
+          onPress={handleComplete}
+          activeOpacity={0.7}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          testID={`complete-${loop.id}`}
+        >
+          <Animated.View
+            style={[
+              styles.ensoContainer,
+              {
+                transform: [
+                  {
+                    scale: completeAnim.interpolate({
+                      inputRange: [0, 0.5, 1],
+                      outputRange: [1, 1.15, 1],
+                    }),
+                  },
+                ],
+              },
+            ]}
           >
-            <Animated.View 
-              style={[
-                styles.checkCircle,
-                { 
-                  backgroundColor: colors.primary,
-                  transform: [{ scale: checkScaleAnim }] 
-                }
-              ]}
-            >
-              <Check size={16} color={colors.background} strokeWidth={3} />
-            </Animated.View>
-          </TouchableOpacity>
-          
-          <View style={styles.textContent}>
-            <View style={styles.titleRow}>
-              {loop.isPinned && (
-                <Pin size={12} color={colors.primary} fill={colors.primary} style={styles.pinIcon} />
-              )}
-              {loop.isQuickWin && (
-                <View style={styles.quickWinBadge}>
-                  <Zap size={10} color={colors.warning} fill={colors.warning} />
-                </View>
-              )}
-              <Text style={[styles.title, { color: colors.text }]} numberOfLines={2}>
-                {loop.title}
-              </Text>
-            </View>
-            
-            {isClosingSoon && (
-              <View style={styles.closingSoonBadge}>
-                <AlertCircle size={12} color={colors.warning} />
-                <Text style={[styles.closingSoonText, { color: colors.warning }]}>
-                  Closes {formatFriendlyDate(loop.windowEndDate!)}
-                </Text>
+            <EnsoIcon
+              size={26}
+              color={colors.primary}
+              variant="open"
+              strokeWidth={2.5}
+            />
+          </Animated.View>
+        </TouchableOpacity>
+
+        {/* Content */}
+        <View style={styles.content}>
+          {/* Title row with optional indicators */}
+          <View style={styles.titleRow}>
+            {loop.isPinned && (
+              <View style={[styles.indicator, { backgroundColor: `${colors.primary}15` }]}>
+                <Text style={[styles.indicatorText, { color: colors.primary }]}>Pinned</Text>
               </View>
             )}
-            
-            <View style={styles.metaRow}>
-              <View style={[styles.categoryDot, { backgroundColor: categoryColor }]} />
-              <Text style={[styles.category, { color: colors.textTertiary }]}>{loop.category}</Text>
-              
-              <View style={[styles.difficultyBadge, { backgroundColor: `${difficultyColor}20` }]}>
-                <Text style={[styles.difficultyText, { color: difficultyColor }]}>
-                  {loop.difficulty}
-                </Text>
-              </View>
-              
-              {loop.estimatedMinutes && (
-                <View style={styles.timeEstimate}>
-                  <Clock size={12} color={colors.textTertiary} />
-                  <Text style={[styles.timeText, { color: colors.textTertiary }]}>{loop.estimatedMinutes}m</Text>
-                </View>
-              )}
-            </View>
-            
-            {displayTags.length > 0 && (
-              <View style={styles.tagsRow}>
-                {displayTags.map(tag => (
-                  <TouchableOpacity
-                    key={tag}
-                    style={styles.tagChip}
-                    onPress={() => onTagPress?.(tag)}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={[styles.tagText, { color: colors.primary }]}>#{tag}</Text>
-                  </TouchableOpacity>
-                ))}
-                {remainingTags > 0 && (
-                  <Text style={[styles.moreTagsText, { color: colors.textTertiary }]}>+{remainingTags} more</Text>
-                )}
+            {loop.isQuickWin && (
+              <View style={[styles.indicator, { backgroundColor: `${colors.warning}15` }]}>
+                <Leaf size={10} color={colors.warning} />
               </View>
             )}
           </View>
+
+          <Text
+            style={[styles.title, { color: colors.text }]}
+            numberOfLines={2}
+          >
+            {loop.title}
+          </Text>
+
+          {/* Closing soon notice */}
+          {isClosingSoon && (
+            <Text style={[styles.closingSoon, { color: colors.warning }]}>
+              Closes {formatFriendlyDate(loop.windowEndDate!)}
+            </Text>
+          )}
+
+          {/* Meta row - minimal, understated */}
+          <View style={styles.metaRow}>
+            <View style={[styles.categoryDot, { backgroundColor: categoryColor }]} />
+            <Text style={[styles.metaText, { color: colors.textTertiary }]}>
+              {loop.category}
+            </Text>
+
+            {loop.estimatedMinutes && (
+              <>
+                <Text style={[styles.metaDivider, { color: colors.textTertiary }]}>·</Text>
+                <Clock size={11} color={colors.textTertiary} />
+                <Text style={[styles.metaText, { color: colors.textTertiary }]}>
+                  {loop.estimatedMinutes}m
+                </Text>
+              </>
+            )}
+
+            <Text style={[styles.metaDivider, { color: colors.textTertiary }]}>·</Text>
+            <Text style={[styles.metaText, { color: colors.textTertiary }]}>
+              {loop.difficulty}
+            </Text>
+          </View>
+
+          {/* Tags - subtle, clickable */}
+          {displayTags.length > 0 && (
+            <View style={styles.tagsRow}>
+              {displayTags.map((tag) => (
+                <TouchableOpacity
+                  key={tag}
+                  onPress={() => onTagPress?.(tag)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.tag, { color: colors.textSecondary }]}>
+                    #{tag}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+              {remainingTags > 0 && (
+                <Text style={[styles.moreTag, { color: colors.textTertiary }]}>
+                  +{remainingTags}
+                </Text>
+              )}
+            </View>
+          )}
         </View>
       </TouchableOpacity>
     </Animated.View>
@@ -185,30 +219,27 @@ export default function LoopCard({ loop, onComplete, onPress, onTagPress }: Prop
 
 const styles = StyleSheet.create({
   container: {
-    marginHorizontal: 16,
+    marginHorizontal: 20,
     marginVertical: 6,
   },
-  content: {
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: 16,
-  },
-  leftSection: {
+  card: {
     flexDirection: 'row',
     alignItems: 'flex-start',
+    borderRadius: 12,
+    padding: 16,
+    paddingLeft: 14,
     gap: 14,
   },
-  checkButton: {
-    marginTop: 2,
+  completeButton: {
+    paddingTop: 2,
   },
-  checkCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+  ensoContainer: {
+    width: 26,
+    height: 26,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  textContent: {
+  content: {
     flex: 1,
     gap: 6,
   },
@@ -216,85 +247,60 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    marginBottom: 2,
   },
-  pinIcon: {
-    marginRight: 2,
-  },
-  quickWinBadge: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: 'rgba(245, 158, 11, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '600' as const,
-    lineHeight: 22,
-  },
-  closingSoonBadge: {
+  indicator: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingVertical: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    gap: 3,
   },
-  closingSoonText: {
+  indicatorText: {
+    fontSize: 10,
+    fontWeight: '500',
+    textTransform: 'lowercase',
+  },
+  title: {
+    fontSize: 16,
+    fontWeight: '500',
+    lineHeight: 22,
+    letterSpacing: -0.2,
+  },
+  closingSoon: {
     fontSize: 12,
-    fontWeight: '500' as const,
+    fontWeight: '500',
+    marginTop: 2,
   },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 5,
     marginTop: 4,
   },
   categoryDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
   },
-  category: {
+  metaText: {
     fontSize: 12,
-    textTransform: 'capitalize' as const,
+    textTransform: 'capitalize',
   },
-  difficultyBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  difficultyText: {
-    fontSize: 11,
-    fontWeight: '600' as const,
-    textTransform: 'capitalize' as const,
-  },
-  timeEstimate: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  timeText: {
+  metaDivider: {
     fontSize: 12,
   },
   tagsRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
     marginTop: 6,
   },
-  tagChip: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    backgroundColor: 'rgba(0, 217, 255, 0.15)',
+  tag: {
+    fontSize: 12,
   },
-  tagText: {
-    fontSize: 11,
-    fontWeight: '500' as const,
-  },
-  moreTagsText: {
+  moreTag: {
     fontSize: 11,
   },
 });
