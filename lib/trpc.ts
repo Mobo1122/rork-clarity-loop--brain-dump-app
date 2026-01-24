@@ -1,21 +1,27 @@
 import { httpLink } from "@trpc/client";
 import { createTRPCReact } from "@trpc/react-query";
 import superjson from "superjson";
+import Constants from "expo-constants";
 
 import type { AppRouter } from "@/backend/trpc/app-router";
 
 export const trpc = createTRPCReact<AppRouter>();
 
 const getBaseUrl = () => {
-  const url = process.env.EXPO_PUBLIC_RORK_API_BASE_URL;
+  // In production, use your deployed backend URL
+  const productionUrl = process.env.EXPO_PUBLIC_API_BASE_URL;
 
-  if (!url) {
-    throw new Error(
-      "Rork did not set EXPO_PUBLIC_RORK_API_BASE_URL, please use support",
-    );
+  if (productionUrl) {
+    return productionUrl;
   }
 
-  return url;
+  // For local development
+  // Use your computer's local IP for testing on physical devices
+  // or localhost for web/simulator
+  const localhost = Constants.expoConfig?.hostUri?.split(':')[0] || 'localhost';
+  const port = process.env.EXPO_PUBLIC_API_PORT || '8081';
+
+  return `http://${localhost}:${port}`;
 };
 
 export const trpcClient = trpc.createClient({

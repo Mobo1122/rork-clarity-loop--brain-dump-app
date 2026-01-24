@@ -3,18 +3,22 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
-    "start": "bunx rork start -p tnpsx7a1v5wltsfiziq8l --tunnel",
-    "start-web": "bunx rork start -p tnpsx7a1v5wltsfiziq8l --web --tunnel",
-    "start-web-dev": "DEBUG=expo* bunx rork start -p tnpsx7a1v5wltsfiziq8l --web --tunnel",
+    "start": "expo start",
+    "start:tunnel": "expo start --tunnel",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "backend": "tsx backend/server.ts",
+    "dev": "concurrently \"npm run backend\" \"npm start\"",
     "lint": "expo lint"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
+    "@hono/node-server": "^1.13.11",
     "@hono/trpc-server": "^0.4.1",
     "@nkzw/create-context-hook": "^1.1.0",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/datetimepicker": "8.4.4",
-    "@rork-ai/toolkit-sdk": "^0.2.51",
     "@stardazed/streams-text-encoding": "^1.0.2",
     "@supabase/supabase-js": "^2.89.0",
     "@tanstack/react-query": "^5.83.0",
@@ -58,8 +62,10 @@
     "@babel/core": "^7.25.2",
     "@expo/ngrok": "^4.1.0",
     "@types/react": "~19.1.10",
+    "concurrently": "^9.1.0",
     "eslint": "^9.31.0",
     "eslint-config-expo": "~10.0.0",
+    "tsx": "^4.19.2",
     "typescript": "~5.9.2"
   },
   "private": true
